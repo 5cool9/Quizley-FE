@@ -1,0 +1,41 @@
+/* index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 글로벌 기본 폰트 */
+@layer base {
+  html, body { @apply font-sans text-neutral-700 bg-neutral-50;
+  -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-synthesis: none;
+    font-synthesis-weight: none;
+  }
+}
+
+/* 타이포그래피 토큰을 클래스화 (디자인 값 반영) */
+@layer components {
+  .typ-h1 { @apply text-[32px] leading-[38.4px] font-semibold text-neutral-900; }
+  .typ-h2 { @apply text-[28px] leading-[33.6px] font-bold  text-neutral-900; }
+  .typ-h3 { @apply text-[22px] leading-[26.4px] font-bold    text-neutral-900; }
+  .typ-h4 { @apply text-[20px] leading-[24px]   font-bold    text-neutral-900; }
+  .typ-h5 { @apply text-[18px] leading-[21.6px] font-semibold; }
+
+  .typ-b1 { @apply text-[12px] leading-[14.4px] font-medium; }
+  .typ-b2 { @apply text-[12px] leading-[14.4px] font-semibold; }
+  .typ-b3 { @apply text-[14px] leading-[16.8px] font-normal; }
+  .typ-b4 { @apply text-[14px] leading-[16.8px] font-medium; }
+  .typ-b5 { @apply text-[16px] leading-[19.2px] font-normal; } /* 기본 본문 */
+  .typ-b6 { @apply text-[16px] leading-[19.2px] font-medium; }
+  .typ-b7 { @apply text-[16px] leading-[19.2px] font-semibold; }
+
+  /* 시맨틱 색상 헬퍼(선택) */
+  .text-primary    { @apply text-neutral-900; }
+  .text-secondary  { @apply text-neutral-650; }
+  .text-disabled   { @apply text-neutral-400; }
+  .bg-base         { @apply bg-neutral-50; }
+  .bg-elevated     { @apply bg-white; }
+  .bg-brand-surface{ @apply bg-primary-100; }
+  .border-subtle   { @apply border-neutral-300; }
+}
