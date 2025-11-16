@@ -23,7 +23,16 @@ export default function TabBar({ active, onChange }: TabBarProps) {
   ];
 
   return (
-    <nav className="w-full h-[86px] pt-2 pb-[30px] px-5 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.03)] border-t border-neutral-200">
+    <nav
+      className="
+    fixed bottom-0 left-1/2 -translate-x-1/2 z-50
+    w-full max-w-[393px]
+    bg-white border-t border-neutral-200
+    shadow-[0_-2px_10px_rgba(0,0,0,0.03)]
+    pt-[14px] px-5
+    pb-[calc(30px+env(safe-area-inset-bottom))]
+  "
+    >
       <ul className="flex items-center justify-between">
         {items.map(({ key, label, on, off }) => {
           const isActive = active === key;
@@ -34,7 +43,7 @@ export default function TabBar({ active, onChange }: TabBarProps) {
                 className="w-full flex flex-col items-center gap-1"
                 aria-current={isActive ? "page" : undefined}
               >
-                <img src={isActive ? on : off} alt="" className="w-6 h-6" />
+                <img src={isActive ? on : off} alt="" className="w-5 h-5" />
                 <span className={`typ-b1 text-center ${isActive ? "text-primary-500" : "text-neutral-400"}`}>
                   {label}
                 </span>

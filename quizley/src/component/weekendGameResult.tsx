@@ -28,12 +28,12 @@ export default function WeekendGameResult({
       className={`w-full max-w-[360px] mx-auto rounded-[20px] bg-white overflow-hidden shadow-[0_0_4px_rgba(0,0,0,0.20)] ${className}`}
     >
       {/* 제목 */}
-      <div className="pt-6 text-center">
+      <div className="pt-[38px] text-center">
         <h2 className="text-[22px] font-bold text-neutral-700">{title}</h2>
       </div>
 
       {/* 이미지 (없으면 회색 박스 대체) */}
-      <div className="mt-4 flex justify-center">
+      <div className="mt-5 flex justify-center">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -46,7 +46,7 @@ export default function WeekendGameResult({
       </div>
 
       {/* 결과 바 2개 */}
-      <div className="mt-6 mb-6 space-y-4 px-6">
+      <div className="mt-[30px] mb-[38px] space-y-[14px] px-[26px]">
         {options.map((opt, idx) => (
           <BarRow key={idx} {...opt} />
         ))}

@@ -50,7 +50,7 @@ export default function CalendarPop({
 
   return (
     <div
-      className="relative w-[357px] h-[364px] bg-white rounded-[13px] shadow-[0_10px_60px_rgba(0,0,0,0.10)]"
+      className="relative w-[357px] h-[370px] bg-white rounded-[13px] shadow-[0_10px_60px_rgba(0,0,0,0.10)]"
       data-dark-mode="False"
     >
       {/* Header */}
@@ -82,7 +82,7 @@ export default function CalendarPop({
 
       {/* Days of week */}
       <div
-        className="absolute left-4 top-[62px] inline-flex w-[325px] justify-between"
+        className="absolute left-4 top-[62px] inline-flex w-[325px] h-[18px] justify-between"
         data-type="Days of Week"
       >
         {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((d) => (
@@ -98,7 +98,7 @@ export default function CalendarPop({
 
       {/* Dates */}
       <div className="absolute left-4 top-[85px] w-[325px]">
-        <div className="flex flex-col gap-[10px]">
+        <div className="flex flex-col gap-[6px]">
           {weeks.map((wk, wi) => (
             <div key={wi} className="flex justify-between">
               {wk.map((day, di) => {

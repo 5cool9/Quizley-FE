@@ -21,25 +21,25 @@ export default function Category({
   activeId = "mystery",
   onChange,
   className = "",
-  pillWidth = 115,            // 필요에 따라 100~110으로 조절
+  //pillWidth = 115,            // 필요에 따라 100~110으로 조절
 }: Props) {
   return (
     <div className={`w-full flex items-center gap-2 ${className}`}>
       {items.map((it) => {
         const active = it.id === activeId;
         const base =
-          "h-10 px-4 rounded-[30px] inline-flex items-center justify-center whitespace-nowrap"; // ★ 줄바꿈 방지
+          "h-[35px] px-4 py-2 rounded-[30px] inline-flex items-center justify-center whitespace-nowrap"; // ★ 줄바꿈 방지
         const activeCls =
-          "bg-primary-700 text-neutral-white typ-b6 font-semibold";
+          "bg-primary-700 text-neutral-white typ-b7";
         const inactiveCls =
-          "bg-neutral-50 text-neutral-650 typ-b6 font-medium";
+          "bg-neutral-50 text-neutral-650 typ-b6";
         return (
           <button
             key={it.id}
             type="button"
             onClick={() => onChange?.(it.id)}
             className={`${base} ${active ? activeCls : inactiveCls}`}
-            style={{ width: pillWidth }}     // ★ 동일 너비 적용
+            //style={{ width: pillWidth }}     // ★ 동일 너비 적용
           >
             {it.label}
           </button>
