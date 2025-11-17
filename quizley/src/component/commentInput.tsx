@@ -53,7 +53,7 @@ export default function CommentInput({
   };
 
   return (
-    <div className={`w-full bg-white pt-2.5 pb-10 ${className}`}>
+    <div className={`w-full bg-white pt-2.5 pb-[10px] ${className}`}>
       <div className="w-[353px] mx-auto rounded-[10px] bg-neutral-50 p-3">
         <div className="flex items-center justify-between">
           {/* 왼쪽: 익명 토글 + 입력 */}

@@ -21,7 +21,7 @@ export default function Header({
     <div className={`w-full flex items-center justify-between px-5 ${className}`}>
       {/* 뒤로가기 */}
       <button type="button" onClick={onBack} aria-label="뒤로가기">
-        <img src={LeftIcon} alt="뒤로가기" className="w-4 h-4" />
+        <img src={LeftIcon} alt="뒤로가기" className="w-6 h-6" />
       </button>
 
       {/* 타이틀 */}

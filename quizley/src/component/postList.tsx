@@ -58,12 +58,12 @@ export default function PostList({
               <div className="flex items-center justify-between">
                 <span className="typ-b1 text-neutral-400">{it.timeText}</span>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-0.5">
                   {/* 좋아요 (사용자 생성 글에만) */}
                   <button
                     type="button"
                     onClick={() => onToggleLike?.(it.id)}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-0.5 "
                     aria-label="좋아요"
                   >
                     <img
@@ -71,14 +71,14 @@ export default function PostList({
                       alt=""
                       className="w-6 h-6"
                     />
-                    <span className="typ-b1 text-neutral-400">{it.likeCount}</span>
+                    <span className={`typ-b1 w-[31px] text-left ${it.liked ? 'text-primary-700' : 'text-neutral-400'}`}>{it.likeCount}</span>
                   </button>
 
                   {/* 댓글 */}
                   <button
                     type="button"
                     onClick={() => onClickComment?.(it.id)}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-0.5"
                     aria-label="댓글"
                   >
                     <img src={IconComment} alt="" className="w-5 h-5" />
@@ -95,7 +95,7 @@ export default function PostList({
           >
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
-                <p className="typ-b1 text-primary-700 font-semibold">오늘의 질문</p>
+                <p className="typ-b1 text-primary-700 font-semibold">Today's Quiz</p>
                 <h3 className="typ-b5 text-neutral-900">{it.title}</h3>
               </div>
 
@@ -120,3 +120,5 @@ export default function PostList({
     </div>
   );
 }
+
+export type { Post, PostUser, PostDaily };
