@@ -475,8 +475,6 @@ const CommunityPage = () => {
     [catDragRef]
   );
 
-  // ---------------- 기타 핸들러 ----------------
-
   const createQBtn = () => {
     nav("/create");
   };

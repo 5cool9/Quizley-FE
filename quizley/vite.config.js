@@ -5,7 +5,7 @@ import svgr from 'vite-plugin-svgr';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), svgr(),
+  plugins: [react(), svgr(), 
   VitePWA({
       registerType: 'autoUpdate',
       manifest: {
@@ -22,4 +22,5 @@ export default defineConfig({
       },
    }),
   ],
+  server: { host: true }, //휴대폰 웹에서도 확인 가능하게 함 
 })

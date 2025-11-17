@@ -71,7 +71,6 @@ const UserQDetailPage = () => {
                         onMenu={() => console.log("menu")}
                     />
                 </div>
-                <div>{params.id}번 일기입니다!</div>
 
 
                 <div className="comments">
