@@ -1,7 +1,8 @@
-// src/App.tsx  (또는 App.jsx → App.tsx)
-import { Routes, Route } from "react-router-dom";
+// src/App.tsx
+import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/loginPage";
 import JoinPage from "./pages/joinPage";
+<<<<<<< HEAD
 
 import CommunityPage from "./pages/communityPage";
 import TodayQDetailPage from "./pages/todayQDetailPage";
@@ -18,12 +19,17 @@ function HomeStub() {
     </div>
   );
 }
+=======
+import RecordPage from "./pages/recordPage";
+import WeekendInsightPage from "./pages/weekendInsightPage";
+>>>>>>> e250f7f (✨feat: 기록 페이지 관련 ui 개발)
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />
       <Route path="/join" element={<JoinPage />} />
+<<<<<<< HEAD
       <Route path="/home" element={<HomeStub />} />
 
       {/* Coummunity */}
@@ -37,6 +43,12 @@ export default function App() {
       
       {/* Etc */}
       <Route path="/component-test" element={<ComponentTestPage />} />
+=======
+      <Route path="/record" element={<RecordPage />} />
+      <Route path="/weekend" element={<WeekendInsightPage/>}/>
+      {/* ⬇️ 임시: 홈을 레코드로 리다이렉트 */}
+      <Route path="/home" element={<Navigate to="/record" replace />} />
+>>>>>>> e250f7f (✨feat: 기록 페이지 관련 ui 개발)
     </Routes>
   );
 }

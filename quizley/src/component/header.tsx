@@ -25,7 +25,7 @@ export default function Header({
       </button>
 
       {/* 타이틀 */}
-      <h1 className="typ-h3 text-neutral-900 text-center">{title}</h1>
+      <div className="typ-h3 text-neutral-900 text-center font-medium">{title}</div>
 
       {/* 메뉴(숨김시 동일 폭 스페이서로 정렬 유지) */}
       {showMenu ? (
