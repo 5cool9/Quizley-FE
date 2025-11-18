@@ -1,4 +1,6 @@
 // src/component/tabbar.tsx
+import { useNavigate } from "react-router-dom";
+
 import HomeNone from "../assets/icon/HomeNone.svg";
 import HomeActiv from "../assets/icon/HomeActiv.svg";
 import HistoryNone from "../assets/icon/HistoryNone.svg";
@@ -16,12 +18,29 @@ interface TabBarProps {
 }
 
 export default function TabBar({ active, onChange }: TabBarProps) {
+  const navigate = useNavigate();
+
+  // 탭키 → 라우트 경로 매핑 (프로젝트에 맞게 필요하면 수정)
+  const pathMap: Record<TabKey, string> = {
+    home: "/home",        // 지금 /home → /record 로 리다이렉트 중
+    history: "/record",
+    community: "/community",
+    my: "/my",
+  };
+
   const items: { key: TabKey; label: string; on: string; off: string }[] = [
     { key: "home", label: "홈", on: HomeActiv, off: HomeNone },
     { key: "history", label: "기록", on: HistoryActiv, off: HistoryNone },
     { key: "community", label: "커뮤니티", on: CommunityActiv, off: CommunityNone },
     { key: "my", label: "MY", on: MypageActiv, off: MypageNone },
   ];
+
+  const handleClick = (key: TabKey) => {
+    // 부모에서 상태 쓰면 유지
+    onChange?.(key);
+    // 라우팅
+    navigate(pathMap[key]);
+  };
 
   return (
     <nav
@@ -40,7 +59,7 @@ export default function TabBar({ active, onChange }: TabBarProps) {
           return (
             <li key={key} className="w-[42px]">
               <button
-                onClick={() => onChange?.(key)}
+                onClick={() => handleClick(key)}
                 className="w-full flex flex-col items-center gap-1"
                 aria-current={isActive ? "page" : undefined}
               >

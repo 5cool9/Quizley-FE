@@ -4,11 +4,10 @@ import React, {
   useRef,
   useCallback,
   useEffect,
-  MutableRefObject,
 } from "react";
 import { useNavigate } from "react-router-dom";
 
-import TabBar from "../component/tabbar";
+import TabBar, { TabKey } from "../component/tabbar";
 import SearchBar from "../component/searchBar";
 import Category from "../component/category";
 import PostList, {
@@ -16,7 +15,7 @@ import PostList, {
   type PostDaily,
   type PostUser,
 } from "../component/postList";
-import CalendarPop from "../component/calendarPop";
+import CalendarPop from "../component/calenderPop";
 
 import HotPost from "../component/hotPost";
 import CalendarIcon from "../assets/icon/icon_calender.svg";
@@ -27,7 +26,7 @@ import BubbleTail from "../assets/icon/icon_bubble_tail.svg";
 /* ----------------------- API 응답 형태 & 더미 데이터 ----------------------- */
 
 // 백엔드에서 내려주는 카테고리 코드 맟추기
-type CategoryCode = "미스터리" | "과학" | "문학" | "예술"| "역사" | "심리";
+type CategoryCode = "미스터리" | "과학" | "문학" | "예술" | "역사" | "심리";
 
 // 오늘의 퀴즈
 type TodayQuizApi = {
@@ -168,7 +167,7 @@ const DUMMY_HOME_BY_CATEGORY: Record<string, CommunityHomeApi> = {
     ],
     quizzes: [],
   },
-//예술
+  //예술
   art: {
     date: "2025-11-03",
     category: "예술",
@@ -267,7 +266,7 @@ const CommunityPage = () => {
   const nav = useNavigate();
 
   // 하단 탭바 상태
-  const [activeTab, setActiveTab] = useState("community");
+  const [activeTab, setActiveTab] = useState<TabKey>("community");
 
   // 정렬: 최신순 / 인기순
   const [sortType, setSortType] = useState<"latest" | "popular">("latest");
@@ -423,25 +422,8 @@ const CommunityPage = () => {
   const hotItems = homeData.hotQuiz; // QuizSummaryApi[]
   const [hotIndex, setHotIndex] = useState(0);
 
-  const hotRef = useRef<HTMLDivElement | null>(null);
-
-  // Hot 영역에도 드래그 스크롤 적용
   const { dragBind: hotDrag } = useDragScroll();
-  const { ref: dragRef, ...restHotDragBind } = hotDrag;
-
-  // dragRef,hotRef를 합쳐서 하나의 ref로 관리
-  const combinedHotRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (typeof dragRef === "function") {
-        dragRef(node);
-      } else if (dragRef) {
-        (dragRef as MutableRefObject<HTMLDivElement | null>).current =
-          node;
-      }
-      hotRef.current = node;
-    },
-    [dragRef]
-  );
+  const { ref: hotRef, ...restHotDragBind } = hotDrag;
 
   // 인디케이터 클릭 → 해당 슬라이드로 스크롤
   const scrollToHot = (i: number) => {
@@ -462,18 +444,6 @@ const CommunityPage = () => {
   // ---------------- 카테고리 영역 드래그 스크롤 ----------------
   const { dragBind: catDrag } = useDragScroll();
   const { ref: catDragRef, ...restCatDragBind } = catDrag;
-
-  const combinedCatRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (typeof catDragRef === "function") {
-        catDragRef(node);
-      } else if (catDragRef) {
-        (catDragRef as MutableRefObject<HTMLDivElement | null>).current =
-          node;
-      }
-    },
-    [catDragRef]
-  );
 
   const createQBtn = () => {
     nav("/create");
@@ -507,7 +477,7 @@ const CommunityPage = () => {
 
         {/* 카테고리 (가로 드래그 스크롤) */}
         <div
-          ref={combinedCatRef}
+          ref={catDragRef}
           className="w-[393px] px-5 overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing select-none touch-pan-x"
           {...restCatDragBind}
         >
@@ -523,7 +493,7 @@ const CommunityPage = () => {
           <h1 className="px-5 typ-h5 text-neutral-900">🔥HOT 인기글</h1>
 
           <div
-            ref={combinedHotRef}
+            ref={hotRef}
             onScroll={onHotScroll}
             className="overflow-x-auto overflow-y-hidden no-scrollbar
                        snap-x snap-mandatory scroll-smooth touch-pan-x

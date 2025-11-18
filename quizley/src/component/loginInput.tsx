@@ -14,6 +14,7 @@ type Props = {
   className?: string;
   showClear?: boolean;
   allowToggle?: boolean;
+  disabled?: boolean;
 };
 
 export default function LoginInput({
@@ -26,6 +27,7 @@ export default function LoginInput({
   className = "",
   showClear = true,
   allowToggle = true,
+  disabled = false, 
 }: Props) {
   const [inner, setInner] = useState(defaultValue);
   const controlled = value !== undefined;
@@ -37,6 +39,7 @@ export default function LoginInput({
   const hasValue = (text ?? "").length > 0;
 
   const handleChange = (v: string) => {
+    if (disabled) return; 
     if (controlled) onChange?.(v);
     else {
       setInner(v);
@@ -44,10 +47,17 @@ export default function LoginInput({
     }
   };
 
-  const borderTone = hasValue ? "border-neutral-700" : "border-neutral-300";
+  // ✅ disabled일 때는 항상 연한 테두리
+  const borderTone = disabled
+    ? "border-neutral-300"
+    : hasValue
+    ? "border-neutral-700"
+    : "border-neutral-300";
 
   return (
-    <div className={`w-full bg-white rounded-[10px] px-5 py-3 border ${borderTone} focus-within:border-neutral-700 transition-colors ${className}`}>
+    <div
+      className={`w-full bg-white rounded-[10px] px-5 py-3 border ${borderTone} focus-within:border-neutral-700 transition-colors ${className}`}
+    >
       <div className="flex flex-col gap-0.5">
         <span className="typ-b4 text-neutral-400">{label}</span>
 
@@ -57,7 +67,10 @@ export default function LoginInput({
             value={text}
             onChange={(e) => handleChange(e.target.value)}
             placeholder={placeholder}
-            className="w-full bg-transparent outline-none typ-b6 placeholder:text-neutral-300 "
+            disabled={disabled} 
+            className={`w-full bg-transparent outline-none typ-b6 placeholder:text-neutral-300 ${
+              disabled ? "text-neutral-300 cursor-not-allowed" : ""
+            }`}
           />
 
           {/* 아이콘 영역: 항상 24x24 공간 확보 */}
@@ -68,19 +81,23 @@ export default function LoginInput({
                 type="button"
                 onClick={() => handleChange("")}
                 aria-label="지우기"
-                className={`p-0 ${hasValue ? "" : "invisible"}`}
+                className={`p-0 ${
+                  hasValue && !disabled ? "" : "invisible"
+                }`}
               >
                 <img src={IconClear} alt="" className="w-6 h-6" />
               </button>
             )}
 
-            {/* password 타입: 눈 아이콘 (허용하지 않으면 자리만 유지) */}
+            {/* password 타입: 눈 아이콘 */}
             {isPassword && (
               <button
                 type="button"
-                onClick={() => allowToggle && setShowPassword((s) => !s)}
+                onClick={() =>
+                  !disabled && allowToggle && setShowPassword((s) => !s)
+                }
                 aria-label={showPassword ? "비밀번호 가리기" : "비밀번호 보기"}
-                className={`${allowToggle ? "" : "invisible"}`}
+                className={`${allowToggle && !disabled ? "" : "invisible"}`}
               >
                 <img
                   src={showPassword ? IconEyeOff : IconEye}
