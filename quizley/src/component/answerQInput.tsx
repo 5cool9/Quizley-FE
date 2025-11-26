@@ -23,7 +23,7 @@ export default function AnswerQInput({
         defaultValue={value === undefined ? defaultValue : undefined}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
-        className="h-[150px] resize-none bg-transparent outline-none typ-b5 text-neutral-900 placeholder:text-neutral-400"
+        className="h-[150px] w-full resize-none bg-transparent outline-none typ-b5 placeholder:text-neutral-400"
       />
     </div>
   );

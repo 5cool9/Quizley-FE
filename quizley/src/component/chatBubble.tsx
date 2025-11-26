@@ -23,7 +23,7 @@ export default function ChatBubble({ role, text, timeText, className = "" }: Pro
         </div>
 
         {/* 버블: top-right만 뾰족하지 않게 하고, 하단 보더 1px */}
-        <div className="flex flex-col gap-3 p-4 bg-white rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px] border-b border-neutral-50">
+        <div className="flex flex-col gap-3 p-4 bg-white rounded-tr-[10px] rounded-br-[10px] rounded-bl-[10px] border-b border-neutral-50 max-w-[80%]">
           <p className="typ-b6 text-neutral-900 whitespace-pre-line">
             {text}
           </p>
@@ -34,11 +34,10 @@ export default function ChatBubble({ role, text, timeText, className = "" }: Pro
 
   // === 사용자 버블 (우측, 다크) ===
   return (
-    <div className={`w-full flex justify-end ${className}`}>
-      <div className="inline-flex items-end gap-1">
+    <div className={`inline-flex w-full justify-end items-end gap-1 ${className}`}>
         {timeText && <span className="typ-b1 text-neutral-400">{timeText}</span>}
 
-        <div className="inline-flex p-4 bg-neutral-650 rounded-tl-[10px] rounded-br-[10px] rounded-bl-[10px] border-b border-neutral-50 items-center justify-center">
+        <div className="inline-flex p-4 bg-neutral-650 rounded-tl-[10px] rounded-br-[10px] rounded-bl-[10px] border-b border-neutral-50 items-center justify-center max-w-[80%]">
           <div className="flex flex-col items-end gap-3">
             <p className="typ-b6 text-neutral-white whitespace-pre-line">
               {text}
@@ -46,6 +45,6 @@ export default function ChatBubble({ role, text, timeText, className = "" }: Pro
           </div>
         </div>
       </div>
-    </div>
+
   );
 }
