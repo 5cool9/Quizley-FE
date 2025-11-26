@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import svgr from 'vite-plugin-svgr';
+import { fileURLToPath, URL } from 'node:url'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -22,5 +23,10 @@ export default defineConfig({
       },
    }),
   ],
+    resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   server: { host: true }, //휴대폰 웹에서도 확인 가능하게 함 
 })

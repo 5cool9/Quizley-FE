@@ -13,7 +13,7 @@ type DeleteInsightPopProps = {
   onCancel?: () => void;
 };
 
-export default function DeleteInsightPop({
+export default function BlockUserPop({
   open,
   title = "사용자를 차단하시겠습니까?",
   description,

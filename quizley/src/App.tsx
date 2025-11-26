@@ -1,12 +1,12 @@
 import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/loginPage";
 import JoinPage from "./pages/joinPage";
-import CommunityPage from "./pages/communityPage";
-import TodayQDetailPage from "./pages/todayQDetailPage";
-import WeekendQDetailPage from "./pages/weekendQDetailPage";
-import UserQDetailPage from "./pages/userQDetailPage";
-import SearchListPage from "./pages/searchListPage";
-import CreateQPage from "./pages/createQPage";
+import CommunityPage from "./pages/community/communityPage";
+import TodayQDetailPage from "./pages/community/todayQDetailPage";
+import WeekendQDetailPage from "./pages/community/weekendQDetailPage";
+import UserQDetailPage from "./pages/community/userQDetailPage";
+import SearchListPage from "./pages/community/searchListPage";
+import CreateQPage from "./pages/community/createQPage";
 import RecordPage from "./pages/recordPage";
 import WeekendInsightPage from "./pages/weekendInsightPage";
 import MyPage from "./pages/myPage";
@@ -19,8 +19,12 @@ import QuizleyBotPage from "./pages/quizleyBotPage";
 import TodayInsightPage from "./pages/todayInsightPage";
 import EditSummaryPage from "./pages/editSummaryPage";
 
+// LevelUp Context
 import { useLevel } from "./context/LevelCotext";
 import LevelUpPop from "./component/levelupPop";
+
+// 임시 HomeStub 페이지
+import HomeStub from "./pages/homeStub";
 
 export default function App() {
   const { isLevelUp, resetLevelUp } = useLevel();
@@ -41,10 +45,13 @@ export default function App() {
         <Route path="/analyze/:category" element={<TodayInsightPage />} />
         <Route path="/analyze/:category/edit" element={<EditSummaryPage />} />
 
+        {/* Home(임시) */}
+        <Route path="/home-stub" element={<HomeStub />} />
+
         {/* Community */}
         <Route path="community" element={<CommunityPage />} />
-        <Route path="today/:id" element={<TodayQDetailPage />} />
-        <Route path="weekend/:id" element={<WeekendQDetailPage />} />
+        <Route path="today/:id" element={<TodayQDetailPage />} /> {/* 오늘의 질문(평일) */}
+        <Route path="weekend/:id" element={<WeekendQDetailPage />} /> {/* 오늘의 질문(주말) */}
         <Route path="user/:id" element={<UserQDetailPage />} />
         <Route path="search" element={<SearchListPage />} />
         <Route path="create" element={<CreateQPage />} />
@@ -64,3 +71,4 @@ export default function App() {
     </>
   );
 }
+

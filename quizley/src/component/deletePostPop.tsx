@@ -13,7 +13,7 @@ type DeleteInsightPopProps = {
   onCancel?: () => void;
 };
 
-export default function DeleteInsightPop({
+export default function DeletePostPop({
   open,
   title = "게시물을 삭제하시겠습니까?",
   message = "삭제된 게시글은 복구할 수 없습니다.",

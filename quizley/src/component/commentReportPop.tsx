@@ -13,7 +13,7 @@ type DeleteInsightPopProps = {
   onCancel?: () => void;
 };
 
-export default function DeleteInsightPop({
+export default function CommentReportPop({
   open,
   title = "댓글을 신고하시겠습니까?",
   description,

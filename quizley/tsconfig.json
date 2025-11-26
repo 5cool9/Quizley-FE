@@ -13,7 +13,10 @@
     "jsx": "react-jsx",
     "strict": true,
     "allowJs": false,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
   },
   "include": ["src", "src/types"]
 }
