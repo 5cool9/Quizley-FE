@@ -1,3 +1,4 @@
+// src/App.tsx
 import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/loginPage";
 import JoinPage from "./pages/joinPage";
@@ -18,13 +19,11 @@ import HomePage from "./pages/homePage";
 import QuizleyBotPage from "./pages/quizleyBotPage";
 import TodayInsightPage from "./pages/todayInsightPage";
 import EditSummaryPage from "./pages/editSummaryPage";
+import NotificationPage from "./pages/notificationPage";
 
 // LevelUp Context
 import { useLevel } from "./context/LevelCotext";
 import LevelUpPop from "./component/levelupPop";
-
-// 임시 HomeStub 페이지
-import HomeStub from "./pages/homePage";
 
 export default function App() {
   const { isLevelUp, resetLevelUp } = useLevel();
@@ -45,17 +44,17 @@ export default function App() {
         <Route path="/analyze/:category" element={<TodayInsightPage />} />
         <Route path="/analyze/:category/edit" element={<EditSummaryPage />} />
 
-        {/* Home(임시) */}
-        <Route path="/home-stub" element={<HomeStub />} />
+        {/* 알림 */}
+        <Route path="/noti" element={<NotificationPage />} />
 
-        {/* Community */}
+        {/* Community (첫 번째 코드 기준 라우트) */}
         <Route path="community" element={<CommunityPage />} />
-        <Route path="community/today/:id" element={<TodayQDetailPage />} /> {/* 오늘의 질문(평일) */}
-        <Route path="community/weekend/:id" element={<WeekendQDetailPage />} /> {/* 오늘의 질문(주말) */}
-        <Route path="community/user/:id" element={<UserQDetailPage />} />
-        <Route path="community/search" element={<SearchListPage />} />
-        <Route path="community/create" element={<CreateQPage />} />
-        <Route path="community/edit/:id" element={<CreateQPage />} />
+        <Route path="today/:id" element={<TodayQDetailPage />} />
+        <Route path="weekend/:id" element={<WeekendQDetailPage />} />
+        <Route path="user/:id" element={<UserQDetailPage />} />
+        <Route path="search" element={<SearchListPage />} />
+        <Route path="create" element={<CreateQPage />} />
+        <Route path="edit/:id" element={<CreateQPage />} />
 
         {/* Record */}
         <Route path="/record" element={<RecordPage />} />
