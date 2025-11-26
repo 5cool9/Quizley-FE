@@ -26,7 +26,7 @@ export default function DeletePostPop({
 
   return (
     <div
-      className="fixed inset-0 z-[1000] grid place-items-center bg-black/30"
+      className="fixed inset-0 z-[1000] grid place-items-center bg-black/70"
       role="dialog"
       aria-modal="true"
       onClick={onCancel}
