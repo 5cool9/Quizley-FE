@@ -49,12 +49,12 @@ export default function App() {
 
         {/* Community (첫 번째 코드 기준 라우트) */}
         <Route path="community" element={<CommunityPage />} />
-        <Route path="today/:id" element={<TodayQDetailPage />} />
-        <Route path="weekend/:id" element={<WeekendQDetailPage />} />
-        <Route path="user/:id" element={<UserQDetailPage />} />
-        <Route path="search" element={<SearchListPage />} />
-        <Route path="create" element={<CreateQPage />} />
-        <Route path="edit/:id" element={<CreateQPage />} />
+        <Route path="community/today/:id" element={<TodayQDetailPage />} />
+        <Route path="community/weekend/:id" element={<WeekendQDetailPage />} />
+        <Route path="community/user/:id" element={<UserQDetailPage />} />
+        <Route path="community/search" element={<SearchListPage />} />
+        <Route path="community/create" element={<CreateQPage />} />
+        <Route path="community/edit/:id" element={<CreateQPage />} />
 
         {/* Record */}
         <Route path="/record" element={<RecordPage />} />
