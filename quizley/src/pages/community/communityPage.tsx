@@ -699,9 +699,9 @@ const CommunityPage = () => {
           </div>
 
           {/* 오늘의 질문 / 주말 게임 결과 */}
-          <div className="today-post cursor-pointer px-5 mb-4">
+          <div className="today-post cursor-pointer mb-4">
             {isWeekend ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 px-5">
                 <p className="typ-b1 text-primary-700 font-semibold">
                   Today's Quiz
                 </p>

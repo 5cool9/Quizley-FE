@@ -24,7 +24,7 @@ import { useLevel } from "./context/LevelCotext";
 import LevelUpPop from "./component/levelupPop";
 
 // 임시 HomeStub 페이지
-import HomeStub from "./pages/homeStub";
+import HomeStub from "./pages/homePage";
 
 export default function App() {
   const { isLevelUp, resetLevelUp } = useLevel();
@@ -50,12 +50,12 @@ export default function App() {
 
         {/* Community */}
         <Route path="community" element={<CommunityPage />} />
-        <Route path="today/:id" element={<TodayQDetailPage />} /> {/* 오늘의 질문(평일) */}
-        <Route path="weekend/:id" element={<WeekendQDetailPage />} /> {/* 오늘의 질문(주말) */}
-        <Route path="user/:id" element={<UserQDetailPage />} />
-        <Route path="search" element={<SearchListPage />} />
-        <Route path="create" element={<CreateQPage />} />
-        <Route path="edit/:id" element={<CreateQPage />} />
+        <Route path="community/today/:id" element={<TodayQDetailPage />} /> {/* 오늘의 질문(평일) */}
+        <Route path="community/weekend/:id" element={<WeekendQDetailPage />} /> {/* 오늘의 질문(주말) */}
+        <Route path="community/user/:id" element={<UserQDetailPage />} />
+        <Route path="community/search" element={<SearchListPage />} />
+        <Route path="community/create" element={<CreateQPage />} />
+        <Route path="community/edit/:id" element={<CreateQPage />} />
 
         {/* Record */}
         <Route path="/record" element={<RecordPage />} />
