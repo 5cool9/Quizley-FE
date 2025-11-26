@@ -1,3 +1,4 @@
+// src/App.tsx
 import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/loginPage";
 import JoinPage from "./pages/joinPage";
@@ -24,7 +25,6 @@ import NotificationPage from "./pages/notificationPage";
 import { useLevel } from "./context/LevelCotext";
 import LevelUpPop from "./component/levelupPop";
 
-
 export default function App() {
   const { isLevelUp, resetLevelUp } = useLevel();
 
@@ -43,12 +43,14 @@ export default function App() {
         <Route path="/chat/:category" element={<QuizleyBotPage />} />
         <Route path="/analyze/:category" element={<TodayInsightPage />} />
         <Route path="/analyze/:category/edit" element={<EditSummaryPage />} />
+
+        {/* 알림 */}
         <Route path="/noti" element={<NotificationPage />} />
 
-        {/* Community */}
+        {/* Community (첫 번째 코드 기준 라우트) */}
         <Route path="community" element={<CommunityPage />} />
-        <Route path="today/:id" element={<TodayQDetailPage />} /> {/* 오늘의 질문(평일) */}
-        <Route path="weekend/:id" element={<WeekendQDetailPage />} /> {/* 오늘의 질문(주말) */}
+        <Route path="today/:id" element={<TodayQDetailPage />} />
+        <Route path="weekend/:id" element={<WeekendQDetailPage />} />
         <Route path="user/:id" element={<UserQDetailPage />} />
         <Route path="search" element={<SearchListPage />} />
         <Route path="create" element={<CreateQPage />} />
