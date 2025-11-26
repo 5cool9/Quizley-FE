@@ -32,6 +32,7 @@ type Props = {
   onClickComment?: (id: Post["id"]) => void;
   className?: string;
   iconSize?: IconSize;                           // 전체 크기 기준
+  onClickItem?: (id: Post["id"], kind: Post["kind"]) => void; // 클릭되었는지 전달 
 };
 
 export default function PostList({
@@ -40,6 +41,7 @@ export default function PostList({
   onClickComment,
   className = "",
   iconSize = "md",
+  onClickItem,
 }: Props) {
   // 좋아요 아이콘: sm → 20px, md → 24px
   const likeIconClass = iconSize === "sm" ? "w-5 h-5" : "w-6 h-6";
@@ -53,6 +55,7 @@ export default function PostList({
           <article
             key={it.id}
             className="w-full bg-white px-5 py-5 border-b border-neutral-200"
+            onClick={() => onClickItem?.(it.id, it.kind)}
           >
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
@@ -69,19 +72,22 @@ export default function PostList({
                   {/* 좋아요 */}
                   <button
                     type="button"
-                    onClick={() => onToggleLike?.(it.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleLike?.(it.id);
+                    }}
                     className="flex items-center gap-0.5"
                     aria-label="좋아요"
                   >
+
                     <img
                       src={it.liked ? IconLikeOn : IconLike}
                       alt=""
                       className={likeIconClass}
                     />
                     <span
-                      className={`typ-b1 w-[31px] text-left ${
-                        it.liked ? "text-primary-700" : "text-neutral-400"
-                      }`}
+                      className={`typ-b1 w-[31px] text-left ${it.liked ? "text-primary-700" : "text-neutral-400"
+                        }`}
                     >
                       {it.likeCount}
                     </span>
@@ -90,7 +96,10 @@ export default function PostList({
                   {/* 댓글 */}
                   <button
                     type="button"
-                    onClick={() => onClickComment?.(it.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClickComment?.(it.id);
+                    }}
                     className="flex items-center gap-0.5"
                     aria-label="댓글"
                   >
@@ -111,6 +120,7 @@ export default function PostList({
           <article
             key={it.id}
             className="w-full bg-white px-5 py-5 border-b border-neutral-200"
+            onClick={() => onClickItem?.(it.id, it.kind)}
           >
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
@@ -126,7 +136,10 @@ export default function PostList({
                 {/* 오늘의 질문: 좋아요 없음, 댓글만 */}
                 <button
                   type="button"
-                  onClick={() => onClickComment?.(it.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClickComment?.(it.id);
+                  }}
                   className="flex items-center gap-1"
                   aria-label="댓글"
                 >

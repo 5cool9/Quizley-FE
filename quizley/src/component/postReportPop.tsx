@@ -13,7 +13,7 @@ type DeleteInsightPopProps = {
   onCancel?: () => void;
 };
 
-export default function DeleteInsightPop({
+export default function PostReportPop({
   open,
   title = "게시물을 신고하시겠습니까?",
   description,
@@ -26,7 +26,7 @@ export default function DeleteInsightPop({
 
   return (
     <div
-      className="fixed inset-0 z-[1000] grid place-items-center bg-black/30"
+      className="fixed inset-0 z-[1000] grid place-items-center bg-black/70"
       role="dialog"
       aria-modal="true"
       onClick={onCancel}
