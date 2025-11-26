@@ -2,12 +2,12 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/loginPage";
 import JoinPage from "./pages/joinPage";
-import CommunityPage from "./pages/communityPage";
-import TodayQDetailPage from "./pages/todayQDetailPage";
-import WeekendQDetailPage from "./pages/weekendQDetailPage";
-import UserQDetailPage from "./pages/userQDetailPage";
-import SearchListPage from "./pages/searchListPage";
-import CreateQPage from "./pages/createQPage";
+import CommunityPage from "./pages/community/communityPage";
+import TodayQDetailPage from "./pages/community/todayQDetailPage";
+import WeekendQDetailPage from "./pages/community/weekendQDetailPage";
+import UserQDetailPage from "./pages/community/userQDetailPage";
+import SearchListPage from "./pages/community/searchListPage";
+import CreateQPage from "./pages/community/createQPage";
 import RecordPage from "./pages/recordPage";
 import WeekendInsightPage from "./pages/weekendInsightPage";
 import MyPage from "./pages/myPage";
@@ -26,7 +26,7 @@ function HomeStub() {
 export default function App() {
   return (
     <Routes>
-       {/* Login/Join */}
+      {/* Login/Join */}
       <Route path="/" element={<LoginPage />} />
       <Route path="/join" element={<JoinPage />} />
 
@@ -35,23 +35,23 @@ export default function App() {
 
       {/* Coummunity */}
       <Route path="community" element={<CommunityPage />} />
-      <Route path="today/:id" element={<TodayQDetailPage />} />
-      <Route path="weekend/:id" element={<WeekendQDetailPage />} />
-      <Route path="user/:id" element={<UserQDetailPage />} />
-      <Route path="search" element={<SearchListPage />} />
-      <Route path="create" element={<CreateQPage />} />
-      <Route path="edit/:id" element={<CreateQPage />} />      
-      
+      <Route path="community/today/:id" element={<TodayQDetailPage />} /> {/*오늘의 질문(평일)*/}
+      <Route path="community/weekend/:id" element={<WeekendQDetailPage />} /> {/*오늘의 질문(주말)*/}
+      <Route path="community/user/:id" element={<UserQDetailPage />} />
+      <Route path="community/search" element={<SearchListPage />} />
+      <Route path="community/create" element={<CreateQPage />} />
+      <Route path="community/edit/:id" element={<CreateQPage />} />
+
       {/* Record */}
       <Route path="/record" element={<RecordPage />} />
-      <Route path="/weekend" element={<WeekendInsightPage/>}/>
+      <Route path="/weekend" element={<WeekendInsightPage />} />
 
       {/* MyPage */}
-      <Route path="/my" element={<MyPage/>}/>
-      <Route path="/edit-profile" element={<EditProfilePage/>}/>
-      <Route path="/post-list" element={<MyPostListPage/>}/>
-      <Route path="/comment-list" element={<MyCommentPage/>}/>
-      <Route path="/like-list" element={<MyLikePage/>}/>
+      <Route path="/my" element={<MyPage />} />
+      <Route path="/edit-profile" element={<EditProfilePage />} />
+      <Route path="/post-list" element={<MyPostListPage />} />
+      <Route path="/comment-list" element={<MyCommentPage />} />
+      <Route path="/like-list" element={<MyLikePage />} />
     </Routes>
   );
 }

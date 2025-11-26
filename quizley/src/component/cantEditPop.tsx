@@ -11,7 +11,7 @@ type DeleteInsightPopProps = {
   onConfirm?: () => void;
 };
 
-export default function DeleteInsightPop({
+export default function CantEditPop({
   open,
   title = "게시물을 수정할 수 없습니다.",
   message = "댓글이 달린 후에는 내용을 수정할 수 없어요.",
@@ -23,7 +23,7 @@ export default function DeleteInsightPop({
 
   return (
     <div
-      className="fixed inset-0 z-[1000] grid place-items-center bg-black/30"
+      className="fixed inset-0 z-[1000] grid place-items-center bg-black/70"
       role="dialog"
       aria-modal="true"
     >
