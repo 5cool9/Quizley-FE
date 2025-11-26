@@ -1,19 +1,19 @@
-// src/component/deleteInsightPop.tsx
+// src/component/deletePostPop.tsx
 import React from "react";
 import BtnShort from "./btnShort";
 import IconCaution from "../assets/icon/icon_caution.svg";
 
 type DeleteInsightPopProps = {
   open: boolean;
-  title?: string;              // 기본: "기록을 삭제하시겠습니까?"
-  message?: string;            // 기본: "삭제된 기록은 복구할 수 없습니다."
+  title?: string;              // 기본: "게시물을 삭제하시겠습니까?"
+  message?: string;            // 기본: "삭제된 게시물은 복구할 수 없습니다."
   confirmText?: string;        // 기본: "확인"
   cancelText?: string;         // 기본: "취소"
   onConfirm?: () => void;
   onCancel?: () => void;
 };
 
-export default function DeletePostPop({
+export default function DeleteInsightPop({
   open,
   title = "게시물을 삭제하시겠습니까?",
   message = "삭제된 게시글은 복구할 수 없습니다.",
@@ -26,7 +26,7 @@ export default function DeletePostPop({
 
   return (
     <div
-      className="fixed inset-0 z-[1000] grid place-items-center bg-black/70"
+      className="fixed inset-0 z-[1000] grid place-items-center bg-black/30"
       role="dialog"
       aria-modal="true"
       onClick={onCancel}
