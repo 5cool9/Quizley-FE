@@ -18,13 +18,12 @@ import HomePage from "./pages/homePage";
 import QuizleyBotPage from "./pages/quizleyBotPage";
 import TodayInsightPage from "./pages/todayInsightPage";
 import EditSummaryPage from "./pages/editSummaryPage";
+import NotificationPage from "./pages/notificationPage";
 
 // LevelUp Context
 import { useLevel } from "./context/LevelCotext";
 import LevelUpPop from "./component/levelupPop";
 
-// 임시 HomeStub 페이지
-import HomeStub from "./pages/homeStub";
 
 export default function App() {
   const { isLevelUp, resetLevelUp } = useLevel();
@@ -44,9 +43,7 @@ export default function App() {
         <Route path="/chat/:category" element={<QuizleyBotPage />} />
         <Route path="/analyze/:category" element={<TodayInsightPage />} />
         <Route path="/analyze/:category/edit" element={<EditSummaryPage />} />
-
-        {/* Home(임시) */}
-        <Route path="/home-stub" element={<HomeStub />} />
+        <Route path="/noti" element={<NotificationPage />} />
 
         {/* Community */}
         <Route path="community" element={<CommunityPage />} />

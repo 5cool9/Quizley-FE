@@ -49,7 +49,7 @@ export default function WeekendHomePage() {
       <div className="bg-white pt-6 px-5">
         <div className="flex items-center justify-between">
           <img src={Logo} alt="logo" className="w-[85px] h-[29px]" />
-          <button onClick={() => setMenuOpen((v) => !v)}>
+          <button onClick={() => navigate("/noti")}>
             <img src={BellIcon} alt="alarm" className="w-[28px] h-[28px]" />
           </button>
         </div>
