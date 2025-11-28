@@ -35,7 +35,7 @@ export default function App() {
 
       <Routes>
         {/* Login/Join */}
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/join" element={<JoinPage />} />
 
         {/* Home */}
