@@ -1,8 +1,9 @@
 // src/pages/loginPage.tsx
-import React from "react";
+import React, { useState } from "react";
 import LoginInput from "../component/loginInput";
 import BtnLong from "../component/btnLong";
 import { useNavigate } from "react-router-dom";
+import { loginApi, saveTokens } from "../api/auth";
 
 type LoginPageProps = {
   onLogin?: () => void;
@@ -12,6 +13,31 @@ type LoginPageProps = {
 export default function LoginPage({ onLogin, onSignup }: LoginPageProps) {
   const nav = useNavigate();
   const goSignup = onSignup ?? (() => nav("/join")); // ← 기본 이동 정의
+
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const canSubmit = userId.trim().length > 0 && password.trim().length > 0;
+
+  const handleLogin = async () => {
+    if (!canSubmit || loading) return;
+
+    try {
+      setLoading(true);
+      const data = await loginApi({ userId, password });
+
+      // 토큰 저장
+      saveTokens(data.accessToken, data.refreshToken);
+
+      onLogin?.();
+      nav("/home");
+    } catch (error: any) {
+      alert(error?.message ?? "로그인에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -26,12 +52,29 @@ export default function LoginPage({ onLogin, onSignup }: LoginPageProps) {
         </div>
 
         <div className="space-y-3">
-          <LoginInput label="아이디" placeholder="아이디를 입력해 주세요." showClear />
-          <LoginInput label="비밀번호" type="password" placeholder="아이디를 입력해 주세요." allowToggle />
+          <LoginInput
+            label="아이디"
+            placeholder="아이디를 입력해 주세요."
+            showClear
+            value={userId}
+            onChange={(v: string) => setUserId(v)}
+          />
+          <LoginInput
+            label="비밀번호"
+            type="password"
+            placeholder="아이디를 입력해 주세요."
+            allowToggle
+            value={password}
+            onChange={(v: string) => setPassword(v)}
+          />
         </div>
 
         <div className="mt-8">
-          <BtnLong label="로그인" onClick={() => nav("/home")} />
+          <BtnLong
+            label="로그인"
+            onClick={handleLogin}
+            disabled={!canSubmit || loading}
+          />
         </div>
 
         <button

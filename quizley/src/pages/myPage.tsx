@@ -1,10 +1,11 @@
 // src/pages/myPage.tsx
-import React, {useState} from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TabBar from "../component/tabbar";
 import ProfileImg from "../assets/img/profileIMG.svg";
 import Badge from "../assets/img/badge.svg";
 import LogoutPop from "../component/logoutPop";
+import { logoutApi } from "../api/auth";
 
 export default function MyPage() {
   const navigate = useNavigate();
@@ -23,26 +24,34 @@ export default function MyPage() {
       label: "프로필 수정",
       onClick: () => navigate("/edit-profile"),
     },
-    { label: "작성한 게시물", 
+    {
+      label: "작성한 게시물",
       onClick: () => navigate("/post-list"),
     },
-    { label: "작성한 댓글",
+    {
+      label: "작성한 댓글",
       onClick: () => navigate("/comment-list"),
-     },
-    { label: "좋아요 누른 게시물",
+    },
+    {
+      label: "좋아요 누른 게시물",
       onClick: () => navigate("/like-list"),
-     },
-    { label: "로그아웃",
-      onClick: () => setLogoutOpen(true), 
-     },
+    },
+    {
+      label: "로그아웃",
+      onClick: () => setLogoutOpen(true),
+    },
   ];
 
-  // 실제 로그아웃 로직은 나중에 토큰 삭제 + 로그인 페이지 이동 등으로 교체
-  const handleConfirmLogout = () => {
-    setLogoutOpen(false);
-    // 예시:
-    // localStorage.removeItem("accessToken");
-    // navigate("/login");
+  // 실제 로그아웃 로직: 토큰 삭제 + 로그인 페이지 이동
+  const handleConfirmLogout = async () => {
+    try {
+      await logoutApi();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLogoutOpen(false);
+      navigate("/login");
+    }
   };
 
   return (
