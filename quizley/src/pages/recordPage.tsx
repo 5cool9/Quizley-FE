@@ -13,7 +13,7 @@ export default function RecordPage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* 페이지 컨테이너: iPhone 프레임 393px */}
-      <div className="mx-auto w-full max-w-[394px] pb-[86px]">
+      <div className="mx-auto w-full max-w-[393px] pb-[86px]">
         {/* 상단 헤더 영역 (화이트 배경) */}
         <div className="bg-white">
           {/* 제목 */}

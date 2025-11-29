@@ -7,6 +7,8 @@ import BellIcon from "../assets/icon/icon_bell.svg";
 import VsIcon from "../assets/icon/icon_vs.svg";
 import CompleteImg from "../assets/img/completeIMG.svg";
 import BtnLong from "../component/btnLong";
+import { voteTodayQuiz } from "../api/balance"; 
+import { getTodayQuiz, QuizOption } from "../api/quiz";
 
 export default function WeekendHomePage() {
   const navigate = useNavigate();
@@ -14,7 +16,9 @@ export default function WeekendHomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selected, setSelected] = useState<"left" | "right" | null>(null);
   const [answer, setAnswer] = useState("");
+  const [quizId, setQuizId] = useState<number | null>(null);
   const isSelected = selected !== null;
+  const [quizLoaded, setQuizLoaded] = useState(false); // 퀴즈 로딩 상태
 
   // 완료 상태 확인 (location.state로 전달)
   const [completed, setCompleted] = useState(false);
@@ -26,25 +30,60 @@ export default function WeekendHomePage() {
     }
   }, [location.state]);
 
-  const [gameData, setGameData] = useState({
-    left: {
-      imageUrl: "/images/sample1.jpg",
-      label: "짜장"
-    },
-    right: {
-      imageUrl: "/images/sample2.jpg",
-      label: "짬뽕"
-    }
-  });
+  const [gameData, setGameData] = useState<{ left: QuizOption; right: QuizOption } | null>(null);
 
-  const handleSend = () => {
-    if (!isSelected) return;
-    navigate("/weekend", { state: { selected } });
+  // 오늘의 퀴즈 조회
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      try {
+        const res = await getTodayQuiz("");
+        const quiz = res.data;
+
+        setQuizId(quiz.quizId);
+        setCompleted(quiz.completed);
+
+        if (quiz.options && quiz.options.length === 2) {
+          const leftOption = quiz.options.find((o) => o.side === "A");
+          const rightOption = quiz.options.find((o) => o.side === "B");
+
+          if (leftOption && rightOption) {
+            setGameData({ left: leftOption, right: rightOption });
+          }
+        }
+      } catch (err) {
+        console.error("오늘의 퀴즈 불러오기 실패:", err);
+      } finally {
+        setQuizLoaded(true); // 로딩 완료 표시
+      }
+    };
+
+    fetchQuiz();
+  }, []);
+
+  const handleSend = async () => {
+    if (!isSelected || !quizId) return;
+
+    const side = selected === "left" ? "A" : "B";
+
+    try {
+      const res = await voteTodayQuiz(quizId, side);
+      console.log("투표 성공", res);
+      setCompleted(true);
+      navigate(`/community/weekend/${quizId}`, {
+      state: {
+        quizId,
+        selectedSide: side,
+        left: gameData?.left,
+        right: gameData?.right,
+      },
+    });
+    } catch (error) {
+      console.error("투표 실패:", error);
+    }
   };
 
   return (
     <div className="min-h-screen bg-white relative pb-[86px]">
-
       {/* 헤더 */}
       <div className="bg-white pt-6 px-5">
         <div className="flex items-center justify-between">
@@ -82,7 +121,9 @@ export default function WeekendHomePage() {
 
       {/* 선택 완료 시 이미지 + 버튼, 아니면 기존 선택지 */}
       <div className="px-5 mt-6 flex flex-col items-center">
-        {completed ? (
+        {!quizLoaded ? (
+          <p></p> // 로딩 표시
+        ) : completed ? (
           <>
             <img src={CompleteImg} alt="답변 완료" className="w-[220px] h-auto mb-10" />
             <BtnLong
@@ -91,13 +132,13 @@ export default function WeekendHomePage() {
               className="w-full max-w-[393px]"
             />
           </>
-        ) : (
+        ) : gameData ? (
           <div className="mt-[60px] flex items-start justify-center gap-4">
             {/* 왼쪽 이미지 + 텍스트 */}
             <div className="cursor-pointer flex flex-col items-center" onClick={() => setSelected("left")}>
               <div className="w-[132px] h-[132px] bg-neutral-200 rounded-[10px] overflow-hidden">
                 <img
-                  src={gameData.left.imageUrl}
+                  src={gameData.left.imgUrl}
                   alt={gameData.left.label}
                   className="w-full h-full object-cover"
                 />
@@ -124,7 +165,7 @@ export default function WeekendHomePage() {
             <div className="cursor-pointer flex flex-col items-center" onClick={() => setSelected("right")}>
               <div className="w-[132px] h-[132px] bg-neutral-200 rounded-[10px] overflow-hidden">
                 <img
-                  src={gameData.right.imageUrl}
+                  src={gameData.right.imgUrl}
                   alt={gameData.right.label}
                   className="w-full h-full object-cover"
                 />
@@ -142,11 +183,11 @@ export default function WeekendHomePage() {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* 버튼 */}
-      {!completed && (
+      {!completed && quizLoaded && (
         <div className="fixed inset-x-0 bottom-[110px] mx-auto w-full max-w-[393px] px-5">
           <button
             onClick={handleSend}

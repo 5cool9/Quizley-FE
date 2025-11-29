@@ -17,22 +17,33 @@ export default function NotificationItem({
   isRead,
   onClick,
 }: NotificationItemProps) {
-  const iconMap: Record<string, string> = {
+  
+  const iconMap: Record<NotificationItemProps["type"], string> = {
     STORY: "⏰",
-    EVENING: "✍️",
-    MORNING: "🔥",
+    MORNING: "✍️",
+    EVENING: "🔥",
     COMMENT: "✏️",
   };
-
-  const titleMap: Record<string, string> = {
-    STORY: "[1년 전 퀴즈] 새로운 답을 고민해볼까요?",
-    MORNING: "[연속학습 8일차] 오늘의 동기부여",
-    EVENING: "[연속학습 8일차] 기록이 깨질 수도 있어요!",
-    COMMENT: "[김슈니님이 만든 질문] 새로운 댓글이 달렸어요",
+  const backendToFrontTypeMap: Record<string, NotificationItemProps["type"]> = {
+    REMINDER_MORNING: "MORNING",
+    REMINDER_EVENING: "EVENING",
+    REMINDER_STORY: "STORY",
+    COMMENT_NEW: "COMMENT",
   };
 
-  const title = titleMap[type];
-  const isComment = type === "COMMENT";
+  const normalizedType =
+    backendToFrontTypeMap[type] ?? type;
+
+  const titleMap: Record<NotificationItemProps["type"], string> = {
+    STORY: "[1년 전 퀴즈] 새로운 답을 고민해볼까요?",
+    MORNING: "[연속학습] 오늘의 동기부여",
+    EVENING: "[연속학습] 기록이 깨질 수도 있어요!",
+    COMMENT: "[댓글] 새로운 댓글이 달렸어요",
+  };
+
+  const icon = iconMap[normalizedType];
+  const title = titleMap[normalizedType];
+  const isComment = normalizedType === "COMMENT";
 
   return (
     <div>
@@ -47,7 +58,7 @@ export default function NotificationItem({
             isComment ? "scale-x-[-1]" : ""
           }`}
         >
-          {iconMap[type]}
+          {icon}
         </span>
 
         <div className="flex-1">

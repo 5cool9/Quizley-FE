@@ -57,7 +57,7 @@ export default function Calender({ onWeekendClick }: CalenderProps) {
   };
 
   return (
-    <div className="relative w-[394px] h-[345px] bg-white overflow-hidden">
+    <div className="relative w-[393px] h-[345px] bg-white overflow-hidden">
       {/* 헤더 */}
       <div className="absolute left-[35px] top-[18px] h-[44px] w-[325px]">
         <div className="absolute left-0 top-[11px] flex items-center gap-2">
