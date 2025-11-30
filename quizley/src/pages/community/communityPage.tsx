@@ -1,3 +1,12 @@
+import {
+  fetchCommunityHome,
+  fetchCommunityWeekendHome,
+  toggleQuizLike,
+  type CommunityHomeApi,
+  type CategoryCode,
+  type QuizSummaryApi,
+} from "@/api/communityApi";
+
 import React, {
   useState,
   useRef,
@@ -22,242 +31,15 @@ import FloatingButton from "@/assets/icon/FlottingButtonGradi.svg";
 import IconX from "@/assets/icon/icon_x_white.svg";
 import BubbleTail from "@/assets/icon/icon_bubble_tail.svg";
 
-/* ----------------------- API 응답 형태 & 더미 데이터 ----------------------- */
+/* ----------------------- 카테고리 매핑 상수 ----------------------- */
 
-// 백엔드에서 내려주는 카테고리 코드 맞추기
-type CategoryCode = "미스터리" | "과학" | "문학" | "예술" | "역사" | "심리";
-
-// 오늘의 퀴즈
-type TodayQuizApi = {
-  quizId: number;
-  content: string;
-  category: CategoryCode;
-  publishedDate: string; // "2025-11-02"
-  isLiked: boolean;
-};
-
-// 일반/핫 퀴즈 정보
-type QuizSummaryApi = {
-  quizId: number;
-  content: string;
-  category: CategoryCode;
-  likeCount: number;
-  commentCount: number;
-  createdAt: string; // 2025-11-04T06:04:00
-  isLiked?: boolean; // 없으면 false로 처리
-};
-
-// 커뮤니티 홈(카테고리+날짜 조합)
-type CommunityHomeApi = {
-  date: string; // "2025-11-02"
-  category: CategoryCode;
-  todayQuiz: TodayQuizApi | null;
-  hotQuiz: QuizSummaryApi[]; // HOT 인기글 리스트
-  quizzes: QuizSummaryApi[]; // 일반 유저 퀴즈 리스트
-};
-
-// 더미 데이터 (카테고리별 기본 데이터 - 2025-11-02 기준. 내용만 활용)
-const DUMMY_HOME_BY_CATEGORY: Record<string, CommunityHomeApi> = {
-  //과학
-  science: {
-    date: "2025-11-02",
-    category: "과학",
-    todayQuiz: {
-      quizId: 14,
-      content: "어제의 질문: 시간 여행이 가능하다면?",
-      category: "과학",
-      publishedDate: "2025-11-02",
-      isLiked: false,
-    },
-    hotQuiz: [
-      {
-        quizId: 1,
-        content: "과학 카테고리 HOT 퀴즈 1",
-        category: "과학",
-        likeCount: 12,
-        commentCount: 3,
-        createdAt: "2025-11-04T06:04:00",
-        isLiked: false,
-      },
-      {
-        quizId: 5,
-        content: "과학 카테고리 HOT 퀴즈 2",
-        category: "과학",
-        likeCount: 30,
-        commentCount: 10,
-        createdAt: "2025-11-04T06:10:00",
-        isLiked: true,
-      },
-    ],
-    quizzes: [
-      {
-        quizId: 21,
-        content: "블랙홀 안에서는 시간이 어떻게 될까?",
-        category: "과학",
-        likeCount: 5,
-        commentCount: 2,
-        createdAt: "2025-11-04T06:30:00",
-        isLiked: false,
-      },
-      {
-        quizId: 22,
-        content: "양자컴퓨터가 보편화되면 무엇이 달라질까?",
-        category: "과학",
-        likeCount: 8,
-        commentCount: 4,
-        createdAt: "2025-11-04T08:00:00",
-        isLiked: true,
-      },
-    ],
-  },
-  //문학
-  literature: {
-    date: "2025-11-05",
-    category: "문학",
-    todayQuiz: {
-      quizId: 4,
-      content: "유명한 문학 퀴즈 1",
-      category: "문학",
-      publishedDate: "2025-11-02",
-      isLiked: false,
-    },
-    hotQuiz: [
-      {
-        quizId: 4,
-        content: "유명한 문학 HOT 퀴즈",
-        category: "문학",
-        likeCount: 50,
-        commentCount: 5,
-        createdAt: "2025-11-04T06:04:00",
-      },
-    ],
-    quizzes: [
-      {
-        quizId: 40,
-        content: "인공지능이 쓴 시를 알아볼 수 있을까?",
-        category: "문학",
-        likeCount: 5,
-        commentCount: 2,
-        createdAt: "2025-11-04T06:30:00",
-        isLiked: false,
-      },
-    ],
-  },
-  //역사
-  history: {
-    date: "2025-11-03",
-    category: "역사",
-    todayQuiz: {
-      quizId: 30,
-      content: "어제의 역사 질문: 왕이 되지 않았다면?",
-      category: "역사",
-      publishedDate: "2025-11-02",
-      isLiked: false,
-    },
-    hotQuiz: [
-      {
-        quizId: 2,
-        content: "유명한 역사 HOT 퀴즈 1",
-        category: "역사",
-        likeCount: 10,
-        commentCount: 1,
-        createdAt: "2025-11-04T06:04:22",
-      },
-    ],
-    quizzes: [],
-  },
-  //예술
-  art: {
-    date: "2025-11-02",
-    category: "예술",
-    todayQuiz: {
-      quizId: 4,
-      content: "유명한 예술 퀴즈 1",
-      category: "예술",
-      publishedDate: "2025-11-02",
-      isLiked: false,
-    },
-    hotQuiz: [
-      {
-        quizId: 4,
-        content: "유명한 예술 퀴즈 2",
-        category: "예술",
-        likeCount: 110,
-        commentCount: 5,
-        createdAt: "2025-11-04T06:04:00",
-      },
-    ],
-    quizzes: [],
-  },
-  //미스터리, 심리 데이터는 비어있는 상태로 유지
-  mystery: {
-    date: "2025-11-02",
-    category: "미스터리",
-    todayQuiz: null,
-    hotQuiz: [],
-    quizzes: [],
-  },
-  psychology: {
-    date: "2025-11-02",
-    category: "심리",
-    todayQuiz: null,
-    hotQuiz: [],
-    quizzes: [],
-  },
-};
-
-// [API 시뮬레이션 함수]: 날짜와 카테고리에 따라 동적으로 더미 데이터를 반환
-//   카테고리별로 정해둔 baseData.date와 선택한 date가 같을 때만 데이터 보여줌
-const simulateFetchCommunityData = (
-  date: string,
-  categoryId: string
-): CommunityHomeApi => {
-  const baseData = DUMMY_HOME_BY_CATEGORY[categoryId];
-
-  // 혹시 모를 방어 코드 (정상이라면 항상 존재)
-  if (!baseData) {
-    return {
-      date,
-      category: "과학",
-      todayQuiz: null,
-      hotQuiz: [],
-      quizzes: [],
-    };
-  }
-
-  const hasData = baseData.date === date;
-
-  // 선택한 날짜에 해당 카테고리 데이터가 없는 경우 → 빈 데이터 반환
-  if (!hasData) {
-    return {
-      date,
-      category: baseData.category,
-      todayQuiz: null,
-      hotQuiz: [],
-      quizzes: [],
-    };
-  }
-
-  // 날짜가 일치하면 baseData를 그대로 사용하되, 날짜 관련 필드만 현재 선택 날짜 기준으로 갱신
-  return {
-    ...baseData,
-    date,
-    todayQuiz: baseData.todayQuiz
-      ? {
-        ...baseData.todayQuiz,
-        publishedDate: date,
-      }
-      : null,
-    hotQuiz: baseData.hotQuiz.map((q) => ({
-      ...q,
-      // 필요하면 createdAt을 date 기반으로 가공해도 됨
-      createdAt: q.createdAt,
-    })),
-    quizzes: baseData.quizzes.map((q) => ({
-      ...q,
-      createdAt: q.createdAt,
-    })),
-  };
+const CATEGORY_ID_TO_CODE: Record<string, CategoryCode> = {
+  science: "과학",
+  literature: "문학",
+  history: "역사",
+  art: "예술",
+  mystery: "미스터리",
+  psychology: "심리",
 };
 
 /* ----------------------- 가로 드래그 스크롤 커스텀 훅----------------------- */
@@ -314,6 +96,12 @@ const useDragScroll = () => {
 /* ---------------------------------------------------- */
 
 const CommunityPage = () => {
+  type WeekendOption = {
+    label: string;
+    percent: number;
+    variant: "primary" | "gray";
+  };
+
   const nav = useNavigate();
 
   const today = new Date();
@@ -325,6 +113,13 @@ const CommunityPage = () => {
   const dd2 = String(dd).padStart(2, "0");
   const todayStr = `${yyyy}-${mm2}-${dd2}`;
 
+  // 마지막으로 선택한 날짜(localStorage)
+  const LAST_DATE_KEY = "community_last_date";
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const saved = localStorage.getItem(LAST_DATE_KEY);
+    return saved ?? todayStr;
+  });
+
   // 하단 탭바 상태
   const [activeTab, setActiveTab] = useState<TabKey>("community");
 
@@ -334,57 +129,39 @@ const CommunityPage = () => {
   // 질문 생성 말풍선
   const [showTip, setShowTip] = useState(true);
 
-  // 선택된 날짜 (API 요청 시 이 값이 사용됨)
-  const [selectedDate, setSelectedDate] = useState(todayStr);
-
   // 카테고리 (API 요청 시 이 값이 사용됨)
-  const [activeCategoryId, setActiveCategoryId] =
-    useState<string>("science");
+  const [activeCategoryId, setActiveCategoryId] = useState<string>("science");
 
   // 선택된 날짜가 주말인지 여부 (토/일)
   const isWeekend = (() => {
-    const d = new Date(selectedDate); // "YYYY-MM-DD" 문자열 → Date
-    const day = d.getDay();           // 0: 일, 6: 토
+    const d = new Date(selectedDate);
+    const day = d.getDay(); // 0: 일, 6: 토
     return day === 0 || day === 6;
   })();
 
   // 현재 화면에 보여줄 "오늘의 + 핫 + 일반" 데이터를 한 번에 관리
-  const [homeData, setHomeData] = useState<CommunityHomeApi>(() =>
-    simulateFetchCommunityData("2025-11-02", "science")
-  );
+  const [homeData, setHomeData] = useState<CommunityHomeApi | null>(null);
 
-  // 날짜 텍스트용(상단에 보여줄 포맷)
-  const displayDate = selectedDate.replace(/-/g, ".");
+  // 로딩/에러 상태
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  //평일/주말 라우팅
-  const goToTodayDetail = (id: number | string) => {
-    const d = new Date(selectedDate);
-    const day = d.getDay(); //0이 일요일, 6이 토요일
+  // ---------------- 캘린더 관련 상태 ----------------
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [currentYear, setCurrentYear] = useState(yyyy);
+  const [currentMonth, setCurrentMonth] = useState(mm);
+  const [selectedDay, setSelectedDay] = useState(dd);
 
-    const isWeekend = day === 0 || day === 6;
+  // ---------------- HOT 인기글 슬라이더 상태/훅 ----------------
+  const [hotIndex, setHotIndex] = useState(0);
+  const { dragBind: hotDrag } = useDragScroll();
+  const { ref: hotRef, ...restHotDragBind } = hotDrag;
 
-    if (isWeekend) {
-      nav(`/community/weekend/${id}`);
-    } else {
-      nav(`/community/today/${id}`)
-    }
-  }
+  // ---------------- 카테고리 영역 드래그 스크롤 ----------------
+  const { dragBind: catDrag } = useDragScroll();
+  const { ref: catDragRef, ...restCatDragBind } = catDrag;
 
-  // 유저 질문 상세로 이동
-  const goToUserDetail = (id: number | string) => {
-    nav(`/community/user/${id}`);
-  };
-
-  // PostList 아이템 클릭 공통 핸들러
-  const handleClickPostItem = (id: number | string, kind: "daily" | "user") => {
-    if (kind === "daily") {
-      goToTodayDetail(id);
-    } else {
-      goToUserDetail(id);
-    }
-  };
-
-  // 최초 마운트 시 localStorage 확인
+  // ---------------- 최초 마운트 시 말풍선 localStorage 확인 ----------------
   useEffect(() => {
     try {
       const dismissed = localStorage.getItem("community_tip_dismissed");
@@ -396,32 +173,170 @@ const CommunityPage = () => {
     }
   }, []);
 
-  // 날짜나 카테고리가 바뀔 때마다 시뮬레이션 함수 실행
   useEffect(() => {
-    const newHomeData = simulateFetchCommunityData(
-      selectedDate,
-      activeCategoryId
+    const load = async () => {
+      const categoryKo = CATEGORY_ID_TO_CODE[activeCategoryId] ?? "심리";
+      setLoading(true);
+      setError(null);
+      try {
+        // 선택된 날짜가 주말인지 계산
+        const d = new Date(selectedDate);
+        const day = d.getDay();            // 0: 일, 6: 토
+        const isWeekendDay = day === 0 || day === 6;
+
+        const data = isWeekendDay
+          ? await fetchCommunityWeekendHome({
+            date: selectedDate,
+            category: categoryKo,
+          })
+          : await fetchCommunityHome({
+            date: selectedDate,
+            category: categoryKo,
+          });
+
+        setHomeData(data);
+      } catch (e: any) {
+        console.error("커뮤니티 홈 로딩 실패:", e);
+
+        if (e.status === 401) {
+          alert("로그인이 필요합니다. 다시 로그인해주세요.");
+          nav("/login");
+        } else {
+          setError(e.message ?? "커뮤니티 홈 로딩 실패");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [selectedDate, activeCategoryId, nav]);
+
+  // ---------------- 좋아요(일반/핫) ----------------
+  const handleToggleLike = useCallback(
+    async (id: PostUser["id"]) => {
+      const quizId = Number(id);
+
+      // 1) UI 먼저 토글(낙관적 업데이트)
+      setHomeData((prev) => {
+        if (!prev) return prev;
+
+        const updateList = (list: QuizSummaryApi[]) =>
+          list.map((q) => {
+            if (q.quizId !== quizId) return q;
+            const currentLiked = q.isLiked ?? false;
+            const newLiked = !currentLiked;
+            const newLikeCount = newLiked ? q.likeCount + 1 : q.likeCount - 1;
+            return { ...q, isLiked: newLiked, likeCount: newLikeCount };
+          });
+
+        return {
+          ...prev,
+          quizzes: updateList(prev.quizzes),
+          hotQuiz: updateList(prev.hotQuiz),
+        };
+      });
+
+      // 2) 서버에 좋아요 요청
+      try {
+        await toggleQuizLike(quizId);
+      } catch (e: any) {
+        console.error("좋아요 토글 실패:", e);
+
+        if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+          alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+          nav("/login");
+          return;
+        }
+
+        alert(e.message ?? "좋아요 처리에 실패했습니다.");
+
+        // 3) 실패 시 UI 롤백
+        setHomeData((prev) => {
+          if (!prev) return prev;
+
+          const updateList = (list: QuizSummaryApi[]) =>
+            list.map((q) => {
+              if (q.quizId !== quizId) return q;
+              const currentLiked = q.isLiked ?? false;
+              const newLiked = !currentLiked;
+              const newLikeCount = newLiked
+                ? q.likeCount + 1
+                : q.likeCount - 1;
+              return { ...q, isLiked: newLiked, likeCount: newLikeCount };
+            });
+
+          return {
+            ...prev,
+            quizzes: updateList(prev.quizzes),
+            hotQuiz: updateList(prev.hotQuiz),
+          };
+        });
+      }
+    },
+    [nav]
+  );
+
+  // 날짜 텍스트용(상단에 보여줄 포맷)
+  const displayDate = selectedDate.replace(/-/g, ".");
+
+  //평일/주말 라우팅
+  const goToTodayDetail = (id: number | string) => {
+    const d = new Date(selectedDate);
+    const day = d.getDay(); //0이 일요일, 6이 토요일
+    const isWeekendDay = day === 0 || day === 6;
+
+    if (isWeekendDay) {
+      nav(`/community/weekend/${id}`);
+    } else {
+      nav(`/community/today/${id}`);
+    }
+  };
+
+  // 유저 질문 상세로 이동
+  const goToUserDetail = (id: number | string) => {
+    nav(`/community/user/${id}`);
+  };
+
+  // PostList 아이템 클릭 공통 핸들러
+  const handleClickPostItem = (
+    id: number | string,
+    kind: "daily" | "user"
+  ) => {
+    if (kind === "daily") {
+      goToTodayDetail(id);
+    } else {
+      goToUserDetail(id);
+    }
+  };
+
+  // 검색 관련 로직
+  const handleSearchSubmit = (query: string) => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
+
+    const categoryCode = CATEGORY_ID_TO_CODE[activeCategoryId];
+
+    nav(
+      `/community/search?q=${encodeURIComponent(
+        trimmedQuery
+      )}&category=${encodeURIComponent(categoryCode)}`
     );
-    setHomeData(newHomeData);
-  }, [activeCategoryId, selectedDate]);
+  };
 
-  // ---------------- 캘린더 관련 상태 ----------------
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [currentYear, setCurrentYear] = useState(yyyy);
-  const [currentMonth, setCurrentMonth] = useState(mm);
-  const [selectedDay, setSelectedDay] = useState(dd);
-
+  // 캘린더 열기/닫기
   const handleOpenCalendar = () => setIsCalendarOpen(true);
   const handleCloseCalendar = () => setIsCalendarOpen(false);
 
   const handleSelectDate = (day: number) => {
     setSelectedDay(day);
 
-    // API용(YYYY-MM-DD)
     const apiDate = `${currentYear}-${(currentMonth + 1)
       .toString()
       .padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
-    setSelectedDate(apiDate); // selectedDate 상태 업데이트 -> useEffect 실행
+
+    setSelectedDate(apiDate);
+    localStorage.setItem(LAST_DATE_KEY, apiDate);
 
     setIsCalendarOpen(false);
   };
@@ -444,15 +359,30 @@ const CommunityPage = () => {
     }
   };
 
-  // ---------------- 검색 관련 로직 ----------------
-  const handleSearchSubmit = (query: string) => {
-    console.log("검색 제출 시도:", query);
-    const trimmedQuery = query.trim();
-
-    if (trimmedQuery) {
-      nav(`/community/search?q=${encodeURIComponent(trimmedQuery)}`);
+  //질문 추가생성 말풍선 한동안 닫기
+  const handleCloseTip = () => {
+    setShowTip(false);
+    try {
+      localStorage.setItem("community_tip_dismissed", "true");
+    } catch (e) {
+      console.error("localStorage 저장 오류:", e);
     }
   };
+
+  // ---------------- homeData 준비 전 로딩/에러 처리 ----------------
+  if (!homeData) {
+    return (
+      <div className="relative bg-elevated w-full max-w-[393px] mx-auto min-h-screen">
+        <div className="flex h-full items-center justify-center">
+          {loading
+            ? "불러오는 중..."
+            : error
+              ? `오류: ${error}`
+              : "데이터를 불러오는 중입니다."}
+        </div>
+      </div>
+    );
+  }
 
   // ---------------- 오늘의 질문 / 일반 질문 매핑 ----------------
 
@@ -464,7 +394,7 @@ const CommunityPage = () => {
         kind: "daily",
         title: homeData.todayQuiz.content,
         dateText: homeData.todayQuiz.publishedDate.replace(/-/g, "."),
-        commentCount: 10,
+        commentCount: homeData.todayQuiz.commentCount
       },
     ]
     : [];
@@ -473,13 +403,10 @@ const CommunityPage = () => {
   const sortedQuizzes: QuizSummaryApi[] = [...homeData.quizzes].sort(
     (a, b) => {
       if (sortType === "latest") {
-        // 최신순
         return (
-          new Date(b.createdAt).getTime() -
-          new Date(a.createdAt).getTime()
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       }
-      // 인기순
       return b.likeCount - a.likeCount;
     }
   );
@@ -488,68 +415,25 @@ const CommunityPage = () => {
   const userPosts: PostUser[] = sortedQuizzes.map((q) => ({
     id: q.quizId,
     kind: "user",
-    nickname: "닉네임", // API에 nickname 생기면 교체
+    nickname: q.nickname ?? "익명",
     title: q.content,
-    timeText: "3시간 전", // createdAt → "n시간 전"으로 계산하는 로직은 나중에
+    timeText: q.createdAt
+      ? q.createdAt
+      : q.publishedDate
+        ? q.publishedDate.replace(/-/g, ".")
+        : "",
     likeCount: q.likeCount,
     commentCount: q.commentCount,
     liked: q.isLiked ?? false,
   }));
 
-  //질문 추가생성 말풍선 한동안 닫기
-  const handleCloseTip = () => {
-    setShowTip(false);
-    try {
-      localStorage.setItem("community_tip_dismissed", "true");
-    } catch (e) {
-      console.error("localStorage 저장 오류:", e);
-    }
-  };
-
-  // ---------------- 좋아요(일반/핫) ----------------
-  const handleToggleLike = useCallback((id: PostUser["id"]) => {
-    setHomeData((prev) => {
-      const targetId = Number(id);
-
-      const updateList = (list: QuizSummaryApi[]) =>
-        list.map((q) => {
-          if (q.quizId !== targetId) return q;
-
-          const currentLiked = q.isLiked ?? false;
-          const newLiked = !currentLiked;
-          const newLikeCount = newLiked
-            ? q.likeCount + 1
-            : q.likeCount - 1;
-
-          console.log(
-            `퀴즈 ID: ${q.quizId} | 좋아요: ${newLiked ? "ON" : "OFF"
-            } | likeCount: ${newLikeCount}`
-          );
-
-          return {
-            ...q,
-            isLiked: newLiked,
-            likeCount: newLikeCount,
-          };
-        });
-
-      return {
-        ...prev,
-        quizzes: updateList(prev.quizzes),
-        hotQuiz: updateList(prev.hotQuiz),
-      };
-    });
-  }, []);
-
   // ---------------- HOT 인기글 슬라이더 ----------------
 
-  const hotItems = homeData.hotQuiz; // QuizSummaryApi[]
-  const [hotIndex, setHotIndex] = useState(0);
+  // HOT 인기글 슬라이더 위쪽에
+  const hotItems = [...homeData.hotQuiz].sort(
+    (a, b) => b.likeCount - a.likeCount
+  );
 
-  const { dragBind: hotDrag } = useDragScroll();
-  const { ref: hotRef, ...restHotDragBind } = hotDrag;
-
-  // 인디케이터 클릭 → 해당 슬라이드로 스크롤
   const scrollToHot = (i: number) => {
     const el = hotRef.current;
     if (!el) return;
@@ -557,7 +441,6 @@ const CommunityPage = () => {
     setHotIndex(i);
   };
 
-  // 스크롤 시 현재 위치에 맞게 인디케이터 업데이트
   const onHotScroll = () => {
     const el = hotRef.current;
     if (!el) return;
@@ -565,13 +448,41 @@ const CommunityPage = () => {
     if (i !== hotIndex) setHotIndex(i);
   };
 
-  // ---------------- 카테고리 영역 드래그 스크롤 ----------------
-  const { dragBind: catDrag } = useDragScroll();
-  const { ref: catDragRef, ...restCatDragBind } = catDrag;
-
   const createQBtn = () => {
     nav("/community/create");
   };
+
+  // 오늘의 투표 결과 (주말용)
+  const voteResult = homeData.todayQuiz?.voteResult ?? null;
+
+  const weekendOptions: [WeekendOption, WeekendOption] | null = voteResult
+    ? [
+      {
+        label: voteResult.sideALabel,
+        percent: voteResult.sideAPercentage,
+        variant:
+          voteResult.sideAPercentage >= voteResult.sideBPercentage
+            ? "primary"
+            : "gray",
+      },
+      {
+        label: voteResult.sideBLabel,
+        percent: voteResult.sideBPercentage,
+        variant:
+          voteResult.sideBPercentage > voteResult.sideAPercentage
+            ? "primary"
+            : "gray",
+      },
+    ]
+    : null;
+
+  let weekendImageUrl: string | undefined;
+  if (voteResult) {
+    const aWin = voteResult.sideAPercentage >= voteResult.sideBPercentage;
+    weekendImageUrl = aWin
+      ? voteResult.sideAImageUrl
+      : voteResult.sideBImageUrl;
+  }
 
   return (
     <div className="relative bg-elevated w-full max-w-[393px] mx-auto min-h-screen">
@@ -635,6 +546,11 @@ const CommunityPage = () => {
                     title={q.content}
                     likeCount={q.likeCount}
                     commentCount={q.commentCount}
+                    liked={q.isLiked ?? false}
+                    onClickLike={(e) => {
+                      e.stopPropagation();
+                      handleToggleLike(q.quizId);
+                    }}
                   />
                 </div>
               ))}
@@ -659,9 +575,7 @@ const CommunityPage = () => {
                   key={i}
                   onClick={() => scrollToHot(i)}
                   aria-label={`인기글 ${i + 1}`}
-                  className={`h-[6px] w-[6px] rounded-full ${i === hotIndex
-                    ? "bg-primary-700"
-                    : "bg-neutral-300"
+                  className={`h-[6px] w-[6px] rounded-full ${i === hotIndex ? "bg-primary-700" : "bg-neutral-300"
                     }`}
                 />
               ))}
@@ -699,34 +613,44 @@ const CommunityPage = () => {
           </div>
 
           {/* 오늘의 질문 / 주말 게임 결과 */}
-          <div className="today-post cursor-pointer mb-4">
-            {isWeekend ? (
-              <div className="flex flex-col gap-2 px-5">
-                <p className="typ-b1 text-primary-700 font-semibold">
+          <div className="today-post cursor-pointer ">
+            {isWeekend && homeData.todayQuiz && weekendOptions ? (
+              <div className="flex flex-col gap-2">
+                <p className="typ-b1 text-primary-700 font-semibold px-5">
                   Today's Quiz
                 </p>
                 <div
-                  className="cursor-pointer"
+                  className="cursor-pointer px-5"
                   onClick={() => {
-                    // 더미 id 사용
                     const quizId = homeData.todayQuiz?.quizId ?? 1;
                     goToTodayDetail(quizId);
                   }}
                 >
                   <WeekendGameResult
-                    title={homeData.todayQuiz?.content}
-                    /*imageUrl={}*/
-                    options={[
-                      { label: "짜장", percent: 70, variant: "primary" },
-                      { label: "짬뽕", percent: 30, variant: "gray" },
-                    ]}
+                    title={homeData.todayQuiz.content}
+                    imageUrl={weekendImageUrl}
+                    options={weekendOptions}
                   />
                 </div>
-                <span className="typ-b1 text-neutral-400">{displayDate}</span>
+
+                {/*<div className="flex items-center justify-between px-5">
+                  <span className="typ-b1 text-neutral-400">{displayDate}</span>
+
+                  <div className="mt-1 flex items-center gap-1">
+                    <img
+                      src={IconComment}
+                      alt=""
+                    />
+                    <span className="typ-b1 text-neutral-400">
+                      {homeData.todayQuiz.commentCount}
+                    </span>
+                  </div>
+                </div>*/}
+                <div className="h-[1px] bg-neutral-200 w-full my-2" />
 
               </div>
+
             ) : (
-              // 평일에는 기존 오늘의 질문 리스트
               <PostList
                 iconSize="sm"
                 items={dailyPosts}
@@ -763,12 +687,10 @@ const CommunityPage = () => {
           {/* 캘린더 팝업 */}
           {isCalendarOpen && (
             <div className="fixed inset-0 z-50 flex items-start justify-center pt-[120px]">
-              {/* 뒷배경 */}
               <div
                 className="absolute inset-0 bg-black/70"
                 onClick={handleCloseCalendar}
               />
-              {/* 캘린더 컴포넌트 */}
               <CalendarPop
                 year={currentYear}
                 monthZeroBase={currentMonth}
@@ -786,7 +708,7 @@ const CommunityPage = () => {
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-10 w-full max-w-[393px]">
         {showTip && (
           <div className="absolute right-[20px] bottom-[190px]">
-            <div className="relative w-[164px] h-[32px] bg-neutral-700 text-white p-2 rounded-lg shadow-md flex items-center gap-2">
+            <div className="relative w-auto min-w-[164px] h-[32px] bg-neutral-700 text-white p-2 rounded-lg shadow-md flex items-center gap-2">
               <span className="typ-b1">직접 질문을 만들어보세요!</span>
               <button
                 onClick={handleCloseTip}

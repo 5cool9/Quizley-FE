@@ -1,5 +1,4 @@
-// src/component/commentInput.tsx
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import SendIcon from "../assets/icon/icon_mingcute_send-fill.svg";
 import IconCheckbox from "../assets/icon/icon_checkbox.svg";
 import IconNoneCheckbox from "../assets/icon/icon_none_checkbox.svg";
@@ -46,6 +45,20 @@ export default function CommentInput({
     onToggleAnonymous?.(next);
   };
 
+ const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    onSubmit?.(trimmed, isAnon);
+
+    if (!controlled) {
+      setInner("");
+    }
+  }
+};
+
   const handleSubmit = () => {
     if (!text.trim()) return;
     onSubmit?.(text.trim(), isAnon);
@@ -84,6 +97,7 @@ export default function CommentInput({
               onChange={(e) => handleChange(e.target.value)}
               placeholder={placeholder}
               className="typ-b6 text-neutral-650 placeholder:text-neutral-400 bg-transparent outline-none w-full"
+              onKeyDown={handleKeyDown}
             />
           </div>
 

@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+// src/pages/community/WeekendQDetailPage.tsx
+
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import Header from "@/component/header";
@@ -12,9 +14,24 @@ import CommentReportPop from "@/component/commentReportPop";
 import BlockUserPop from "@/component/blockUserPop";
 import DeleteCommentPop from "@/component/deleteCommentPop";
 
-/* ---------------- 타입 & 더미 데이터 ---------------- */
+import {
+  fetchWeekendQuizDetail,
+  createQuizComment,
+  toggleCommentLike,
+  reportComment,
+  blockUser,
+  deleteComment,
+} from "@/api/communityApi";
 
-type CommentItem = CommentListItem;
+/* ---------------- 타입 정의 ---------------- */
+
+// CommentListItem에 백엔드 필드(userId, isMine)를 추가해서 내부에서만 쓸 확장 타입
+type ExtendedCommentItem = CommentListItem & {
+  userId?: number;
+  isMine?: boolean;
+};
+
+type CommentItem = ExtendedCommentItem;
 
 type CommentModalType =
   | "comment-report"
@@ -22,165 +39,273 @@ type CommentModalType =
   | "delete-comment"
   | null;
 
-const initialComments: CommentItem[] = [
-  {
-    id: 1,
-    nickname: "익명3",
-    dateText: "2025.01.11",
-    content: "무조건 짜장이죠!! 원래 짜장이 근본이에요",
-    likeCount: 110,
-    liked: true,
-    myComments: true,
-  },
-  {
-    id: 111,
-    nickname: "익명4",
-    dateText: "2025.11.11",
-    content: "무조건 짜장이죠!! 원래 짜장이 근본이에요",
-    likeCount: 1,
-    liked: false,
-    myComments: false,
-  },
-];
-
-/* ---------------- 유틸 함수 ---------------- */
-
-const parseDate = (dateText: string) => {
-  // "2025.01.11" -> Date
-  const [y, m, d] = dateText.split(".").map((v) => Number(v));
-  return new Date(y, m - 1, d);
+type WeekendOption = {
+  label: string;
+  percent: number;
+  variant: "primary" | "gray";
 };
 
-const getTodayText = () => {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}.${m}.${d}`;
-};
+const parseYMD = (iso: string) => iso.split("T")[0].replace(/-/g, ".");
 
 /* ---------------- 컴포넌트 ---------------- */
 
 const WeekendQDetailPage = () => {
-  const { id } = useParams<{ id: string }>(); // 주말 퀴즈 id(지금은 더미)
+  const { id } = useParams<{ id: string }>();
+  const quizId = Number(id);
   const navigate = useNavigate();
 
+  /* --- 상태 --- */
+  const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState<any>(null);
+
+  const [commentItems, setCommentItems] = useState<CommentItem[]>([]);
   const [sortType, setSortType] =
     useState<"latest" | "popular">("latest");
 
-  const [commentItems, setCommentItems] =
-    useState<CommentItem[]>(initialComments);
-
-  const [commentModal, setCommentModal] =
-    useState<CommentModalType>(null);
+  const [commentModal, setCommentModal] = useState<CommentModalType>(
+    null
+  );
   const [targetComment, setTargetComment] =
     useState<CommentItem | null>(null);
 
-  // 토스트 상태
-  const [toastOpen, setToastOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
+  const [toast, setToast] = useState<{ open: boolean; msg: string }>({
+    open: false,
+    msg: "",
+  });
 
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setToastOpen(true);
-    setTimeout(() => {
-      setToastOpen(false);
-    }, 2000);
+    setToast({ open: true, msg });
+    setTimeout(() => setToast({ open: false, msg: "" }), 2000);
   };
 
   const closeCommentModal = () => setCommentModal(null);
 
-  /* ------ 댓글 좋아요 토글 ------ */
-  const handleCommentLike = (cid: CommentItem["id"]) => {
-    const numericId = Number(cid);
-    setCommentItems((prev) =>
-      prev.map((c) => {
-        if (Number(c.id) !== numericId) return c;
+  /* --- 상세 데이터 로드 --- */
+  const loadDetail = async () => {
+    if (!quizId) return;
 
-        const nextLiked = !c.liked;
-        const nextCount = nextLiked
-          ? c.likeCount + 1
-          : c.likeCount - 1;
+    setLoading(true);
+    try {
+      const res: any = await fetchWeekendQuizDetail({
+        quizId,
+        sort: sortType,
+      });
 
-        console.log("comment like:", {
-          commentId: c.id,
-          liked: nextLiked,
-          likeCount: nextCount,
-        });
+      const data = res.data;
+      setDetail(data);
 
-        return {
-          ...c,
-          liked: nextLiked,
-          likeCount: nextCount,
-        };
-      })
-    );
+      // 댓글 매핑 (백엔드 필드 -> CommentList용 필드로 변환)
+      const mapped: CommentItem[] = (data.comments ?? []).map(
+        (c: any) => ({
+          id: c.commentId,
+          nickname: c.nickname,
+          dateText: c.createdAt,
+          content: c.content,
+          likeCount: c.likeCount,
+          liked: c.isLiked,
+          myComments: c.isMine ?? false, // 내 댓글인지 여부 → 메뉴 분기용
+          userId: c.userId,               // 차단 시 필요
+          isMine: c.isMine,
+        })
+      );
+
+      setCommentItems(mapped);
+    } catch (e: any) {
+      console.error("주말 상세 조회 실패:", e);
+
+      if (e.status === 404) {
+        alert("존재하지 않는 페이지입니다.");
+        navigate("/community", { replace: true });
+      } else if (e.status === 401) {
+        alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+        navigate("/login");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  /* ------ 댓글 정렬 ------ */
-  const sortedComments = useMemo(() => {
-    const list = [...commentItems];
-    if (sortType === "popular") {
-      return list.sort((a, b) => b.likeCount - a.likeCount);
-    }
-    return list.sort(
-      (a, b) =>
-        parseDate(b.dateText).getTime() -
-        parseDate(a.dateText).getTime()
+  useEffect(() => {
+    loadDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizId, sortType]);
+
+  /* --- 댓글 좋아요 (API + 낙관적 업데이트 + 실패 롤백) --- */
+  const handleCommentLike = async (commentId: number) => {
+    // 1) UI 먼저 토글
+    setCommentItems((prev) =>
+      prev.map((c) =>
+        Number(c.id) === commentId
+          ? {
+              ...c,
+              liked: !c.liked,
+              likeCount: c.liked ? c.likeCount - 1 : c.likeCount + 1,
+            }
+          : c
+      )
     );
-  }, [commentItems, sortType]);
 
-  const commentCount = commentItems.length;
+    try {
+      await toggleCommentLike(commentId);
+    } catch (e: any) {
+      console.error("댓글 좋아요 실패:", e);
 
-  /* ------ 댓글 메뉴 콜백들 (신고/차단/삭제) ------ */
+      if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+        alert("로그인이 필요합니다. 다시 로그인해주세요.");
+        navigate("/login");
+        return;
+      }
 
-  const openReportModal = (cid: CommentItem["id"]) => {
-    const found =
-      commentItems.find((c) => c.id === cid) ?? null;
+      showToast("좋아요 처리 중 오류가 발생했습니다.");
+
+      // 2) 실패 시 롤백
+      setCommentItems((prev) =>
+        prev.map((c) =>
+          Number(c.id) === commentId
+            ? {
+                ...c,
+                liked: !c.liked,
+                likeCount: c.liked
+                  ? c.likeCount - 1
+                  : c.likeCount + 1,
+              }
+            : c
+        )
+      );
+    }
+  };
+
+  /* --- 댓글 메뉴 열기 --- */
+  const openReportModal = (cid: number | string) => {
+    const found = commentItems.find((c) => c.id === cid) ?? null;
     if (!found) return;
     setTargetComment(found);
     setCommentModal("comment-report");
   };
 
-  const openBlockModal = (cid: CommentItem["id"]) => {
-    const found =
-      commentItems.find((c) => c.id === cid) ?? null;
+  const openBlockModal = (cid: number | string) => {
+    const found = commentItems.find((c) => c.id === cid) ?? null;
     if (!found) return;
     setTargetComment(found);
     setCommentModal("block-user");
   };
 
-  const openDeleteModal = (cid: CommentItem["id"]) => {
-    const found =
-      commentItems.find((c) => c.id === cid) ?? null;
+  const openDeleteModal = (cid: number | string) => {
+    const found = commentItems.find((c) => c.id === cid) ?? null;
     if (!found) return;
     setTargetComment(found);
     setCommentModal("delete-comment");
   };
 
-  /* ------ 댓글 작성 ------ */
+  /* --- 댓글 작성 --- */
+  const handleSubmitComment = async (text: string, isAnon: boolean) => {
+    const content = text.trim();
+    if (!content) return;
 
-  const handleSubmitComment = (text: string, isAnon: boolean) => {
-    console.log("댓글 submit:", text, isAnon);
+    try {
+      await createQuizComment({
+        quizId,
+        content,
+        isAnonymous: isAnon,
+      });
 
-    const nicknameBase = isAnon ? "익명" : "닉네임";
-    const nickname = `${nicknameBase}${commentItems.length + 1}`;
+      // 새 댓글 포함된 최신 리스트 다시 로드
+      await loadDetail();
+      showToast("댓글이 등록되었습니다.");
+    } catch (e: any) {
+      console.error("댓글 작성 실패:", e);
 
-    const newComment: CommentItem = {
-      id: Date.now(),
-      nickname,
-      dateText: getTodayText(),
-      content: text,
-      likeCount: 0,
-      liked: false,
-      myComments: true,
-    };
+      if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+        alert("로그인이 필요합니다. 다시 로그인해주세요.");
+        navigate("/login");
+        return;
+      }
 
-    setCommentItems((prev) => [newComment, ...prev]);
+      showToast(
+        e.message ?? "댓글 작성 중 오류가 발생했습니다."
+      );
+    }
   };
 
-  /* ---------------- 렌더 ---------------- */
+  /* --- 댓글 삭제 --- */
+  const deleteTargetComment = async () => {
+    if (!targetComment) return;
+    try {
+      await deleteComment(Number(targetComment.id));
+      await loadDetail();
+      showToast("댓글이 삭제되었습니다.");
+    } catch (e: any) {
+      console.error("댓글 삭제 실패:", e);
+      if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+        alert("로그인이 필요합니다. 다시 로그인해주세요.");
+        navigate("/login");
+        return;
+      }
+      if (e.status === 403 || e.code === "FORBIDDEN") {
+        showToast("댓글을 삭제할 권한이 없습니다.");
+        return;
+      }
+      showToast(
+        e.message ?? "댓글 삭제 중 오류가 발생했습니다."
+      );
+    }
+  };
 
+  /* --- 정렬된 댓글 --- */
+  const commentCount = commentItems.length;
+
+  const sortedComments = useMemo(() => {
+    const list = [...commentItems];
+    if (sortType === "popular") {
+      return list.sort((a, b) => b.likeCount - a.likeCount);
+    }
+    // latest: API에서 최신순으로 내려준다고 가정 → 그대로 사용
+    return list;
+  }, [commentItems, sortType]);
+
+  /* --- 로딩 처리 --- */
+  if (loading || !detail) {
+    return (
+      <div className="w-full max-w-[393px] mx-auto min-h-screen flex items-center justify-center">
+        <span className="typ-b2 text-neutral-500">불러오는 중...</span>
+      </div>
+    );
+  }
+
+  /* --- WeekendGameResult용 데이터 준비 --- */
+  const voteResult = detail.voteResult ?? null;
+
+  let weekendOptions: [WeekendOption, WeekendOption] | null = null;
+  let weekendImageUrl: string | undefined;
+
+  if (voteResult) {
+    weekendOptions = [
+      {
+        label: voteResult.sideALabel,
+        percent: voteResult.sideAPercentage,
+        variant:
+          voteResult.sideAPercentage >= voteResult.sideBPercentage
+            ? "primary"
+            : "gray",
+      },
+      {
+        label: voteResult.sideBLabel,
+        percent: voteResult.sideBPercentage,
+        variant:
+          voteResult.sideBPercentage > voteResult.sideAPercentage
+            ? "primary"
+            : "gray",
+      },
+    ];
+
+    const aWin =
+      voteResult.sideAPercentage >= voteResult.sideBPercentage;
+    weekendImageUrl = aWin
+      ? voteResult.sideAImageUrl
+      : voteResult.sideBImageUrl;
+  }
+
+  /* ---------------- 렌더 ---------------- */
   return (
     <div className="relative bg-elevated w-full max-w-[393px] mx-auto min-h-screen">
       <div className="flex h-full scrollbar-hide flex-col overflow-y-scroll overflow-x-hidden min-h-[calc(100vh-86px)] pb-[100px]">
@@ -193,36 +318,45 @@ const WeekendQDetailPage = () => {
           />
         </div>
 
-        {/* Today’s Quiz + WeekendGameResult 카드 */}
+        {/* Weekend Game Result */}
         <div className="bg-neutral-50 w-full h-auto px-5 flex pb-6 flex-col items-center">
           <div className="w-full mt-5 content-start mb-3">
             <p className="typ-b7 text-primary-700">
               Today&apos;s Quiz
               <span className="typ-b4 text-neutral-400 ml-3">
-                2025.01.11
+                {parseYMD(detail.publishedDate)}
               </span>
             </p>
           </div>
 
           <div className="w-full">
-            <WeekendGameResult />
+            {voteResult && weekendOptions ? (
+              <WeekendGameResult
+                title={detail.content}
+                imageUrl={weekendImageUrl}
+                options={weekendOptions}
+              />
+            ) : (
+              <div className="w-full rounded-[10px] px-5 py-4 bg-neutral-50 text-neutral-500 typ-b2">
+                투표 결과가 없습니다.
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 회색 경계선 */}
+        {/* 경계선 */}
         <div className="w-full h-4 bg-neutral-50" />
 
         {/* 댓글 영역 */}
         <div className="comments-wrapper pb-[80px]">
           {/* 정렬 버튼 */}
           <div className="px-5 w-full h-[75px] flex flex-row items-center gap-3">
-            {/* 인기순 */}
             <button
               onClick={() => setSortType("popular")}
               className="flex items-center gap-1"
             >
               <span
-                className={`w-[8px] h-[8px] rounded-full ${
+                className={`w-2 h-2 rounded-full ${
                   sortType === "popular"
                     ? "bg-primary-700"
                     : "bg-neutral-300"
@@ -239,13 +373,12 @@ const WeekendQDetailPage = () => {
               </span>
             </button>
 
-            {/* 최신순 */}
             <button
               onClick={() => setSortType("latest")}
               className="flex items-center gap-1"
             >
               <span
-                className={`w-[8px] h-[8px] rounded-full ${
+                className={`w-2 h-2 rounded-full ${
                   sortType === "latest"
                     ? "bg-primary-700"
                     : "bg-neutral-300"
@@ -263,11 +396,11 @@ const WeekendQDetailPage = () => {
             </button>
           </div>
 
-          {/* 댓글 리스트 / 비어있을 때 안내문구 */}
+          {/* 댓글 목록 */}
           {commentCount > 0 ? (
             <CommentList
               items={sortedComments}
-              onClickLike={handleCommentLike}
+              onClickLike={(id) => handleCommentLike(Number(id))}
               onClickReport={openReportModal}
               onClickBlock={openBlockModal}
               onClickDelete={openDeleteModal}
@@ -290,52 +423,106 @@ const WeekendQDetailPage = () => {
         </div>
       </div>
 
-      {/* -------- 모달들 -------- */}
-
-      {/* 댓글 신고 */}
+      {/* --- 댓글 신고 모달 --- */}
       <CommentReportPop
         open={commentModal === "comment-report"}
         onCancel={closeCommentModal}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!targetComment) return;
-          console.log("댓글 신고:", targetComment.id);
+          try {
+            await reportComment(Number(targetComment.id));
+            showToast("신고가 접수되었습니다.");
+          } catch (e: any) {
+            console.error("댓글 신고 실패:", e);
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+              alert("로그인이 필요합니다. 다시 로그인해주세요.");
+              navigate("/login");
+              return;
+            }
+
+            if (e.code === "ALREADY_REPORTED") {
+              showToast("이미 신고한 댓글입니다.");
+              closeCommentModal();
+              return;
+            }
+
+            showToast(
+              e.message ?? "댓글 신고 중 오류가 발생했습니다."
+            );
+          }
           closeCommentModal();
-          showToast("댓글이 신고되었습니다.");
         }}
       />
 
-      {/* 사용자 차단 */}
+      {/* --- 사용자 차단 모달 --- */}
       <BlockUserPop
         open={commentModal === "block-user"}
         onCancel={closeCommentModal}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!targetComment) return;
-          console.log("사용자 차단:", targetComment.nickname);
-          closeCommentModal();
-          showToast("사용자가 차단되었습니다.");
+
+          const userId = (targetComment as any).userId;
+          if (!userId) {
+            showToast("차단할 사용자를 찾을 수 없습니다.");
+            closeCommentModal();
+            return;
+          }
+
+          try {
+            await blockUser(userId);
+
+            // UI에서 해당 유저의 모든 댓글 제거
+            setCommentItems((prev) =>
+              prev.filter((c) => (c as any).userId !== userId)
+            );
+
+            showToast("사용자가 차단되었습니다.");
+          } catch (e: any) {
+            console.error("사용자 차단 실패:", e);
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+              alert("로그인이 필요합니다. 다시 로그인해주세요.");
+              navigate("/login");
+              return;
+            }
+
+            if (e.code === "ALREADY_BLOCKED") {
+              showToast("이미 차단한 사용자입니다.");
+              closeCommentModal();
+              return;
+            }
+
+            if (e.code === "CANNOT_BLOCK_YOURSELF") {
+              showToast("자기 자신은 차단할 수 없습니다.");
+              closeCommentModal();
+              return;
+            }
+
+            showToast(
+              e.message ?? "사용자 차단 중 오류가 발생했습니다."
+            );
+          } finally {
+            closeCommentModal();
+          }
         }}
       />
 
-      {/* 댓글 삭제 */}
+      {/* --- 댓글 삭제 모달 --- */}
       <DeleteCommentPop
         open={commentModal === "delete-comment"}
         onCancel={closeCommentModal}
-        onConfirm={() => {
-          if (!targetComment) return;
-          console.log("댓글 삭제:", targetComment.id);
-          setCommentItems((prev) =>
-            prev.filter((c) => c.id !== targetComment.id)
-          );
+        onConfirm={async () => {
+          await deleteTargetComment();
           closeCommentModal();
-          showToast("댓글이 삭제되었습니다.");
         }}
       />
 
-      {/* -------- 토스트 -------- */}
-      {toastOpen && (
+      {/* --- 토스트 --- */}
+      {toast.open && (
         <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-50">
           <div className="px-4 py-2 rounded-full bg-neutral-800/60">
-            <span className="typ-b4 text-white">{toastMessage}</span>
+            <span className="typ-b4 text-white">{toast.msg}</span>
           </div>
         </div>
       )}

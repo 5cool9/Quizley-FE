@@ -29,6 +29,7 @@ type Props = {
   post: DetailPost;
   iconSize?: IconSize;
   className?: string;
+  commentCount?: number;
   onToggleLike?: (id: DetailUserPost["id"]) => void;  // user일 때만 동작
   onClickComment?: (id: DetailPost["id"]) => void;
 };
@@ -39,7 +40,10 @@ export default function PostDetailCard({
   className = "",
   onToggleLike,
   onClickComment,
+  commentCount,
 }: Props) {
+  const displayCommentCount = commentCount ?? post.commentCount;
+
   const isUser = post.kind === "user";
 
   const likeIconClass = iconSize === "sm" ? "w-5 h-5" : "w-6 h-6";
@@ -91,9 +95,8 @@ export default function PostDetailCard({
                 className={likeIconClass}
               />
               <span
-                className={`typ-b1  ml-1 w-[31px] text-left ${
-                  post.liked ? "text-primary-700" : "text-neutral-400"
-                }`}
+                className={`typ-b1  ml-1 w-[31px] text-left ${post.liked ? "text-primary-700" : "text-neutral-400"
+                  }`}
               >
                 {post.likeCount}
               </span>
@@ -108,11 +111,10 @@ export default function PostDetailCard({
             aria-label="댓글"
           >
             <img src={IconComment} alt="" className={commentIconClass} />
-            <span className="typ-b1 ml-1 text-neutral-400">유저들의 생각 
+            <span className="typ-b1 ml-1 text-neutral-400">유저들의 생각
             </span>
             <span className="typ-b1 ml-1 text-neutral-400">
-              {/* 오늘의 퀴즈면 '999+' 형태도 가능 */}
-              {post.commentCount}
+              {displayCommentCount}
             </span>
           </button>
         </div>
