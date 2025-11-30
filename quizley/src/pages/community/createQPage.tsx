@@ -8,73 +8,130 @@ import Category from "@/component/category";
 import IconChecked from "@/assets/icon/icon_checkbox.svg";
 import IconUnchecked from "@/assets/icon/icon_none_checkbox_v2.svg";
 
-// 수정 모드에서 사용할 더미 데이터
-// 실제로는 여기 대신 질문 상세 API를 다시 호출 
+import {
+  createCommunityQuiz,
+  type CategoryCode,
+  updateCommunityQuiz,
+} from "@/api/communityApi";
+
+// Category 컴포넌트의 id → 백엔드 카테고리 코드 매핑
+const CATEGORY_ID_TO_CODE: Record<string, CategoryCode> = {
+  science: "과학",
+  literature: "문학",
+  history: "역사",
+  art: "예술",
+  mystery: "미스터리",
+  psychology: "심리",
+};
+
+// 수정 모드에서 사용할 더미 데이터 (나중에 상세 조회 API로 대체 예정)
 const EDIT_DEMO: Record<
   number,
   {
     content: string;
     anonymous: boolean;
-    categoryId: string; // Category 컴포넌트에서 사용하는 id 그대로
+    categoryId: string;
   }
 > = {
   111: {
-    content: "왜 우리는 공포 컨텐츠를 즐길까? 무서운데도 왜 계속 보게 되는걸까?",
-    anonymous: true,          // 익명 여부 기본값
-    categoryId: "psychology", // 심리 카테고리 id (네 프로젝트에 맞게 수정)
+    content:
+      "왜 우리는 공포 컨텐츠를 즐길까? 무서운데도 왜 계속 보게 되는걸까?",
+    anonymous: true,
+    categoryId: "psychology",
   },
 };
 
 const CreateQPage = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id?: string }>();   // /create -> undefined, /edit/:id -> 값 있음
-  const isEdit = !!id;                           // 수정 모드 여부
+  const { id } = useParams<{ id?: string }>();
+  const isEdit = !!id;
 
-  // 더미
-  const base =
-    isEdit && id
-      ? EDIT_DEMO[Number(id)]
-      : null;
+  const base = isEdit && id ? EDIT_DEMO[Number(id)] : null;
 
-  // 익명 여부 – base가 있으면 그 값으로 초기화
   const [anonymous, setAnonymous] = useState<boolean>(
     base?.anonymous ?? false
   );
-
-  // 질문 내용 – base.content 사용
-  const [content, setContent] = useState<string>(
-    base?.content ?? ""
+  const [content, setContent] = useState<string>(base?.content ?? "");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    base?.categoryId ?? null
   );
+  const [submitting, setSubmitting] = useState(false);
 
-  // 카테고리– base.categoryId 사용
-  const [selectedCategoryId, setSelectedCategoryId] =
-    useState<string | null>(base?.categoryId ?? null);
+  const isValid = content.trim().length > 0 && selectedCategoryId !== null;
 
-  const isValid =
-    content.trim().length > 0 && selectedCategoryId !== null;
+  const handleSubmit = async () => {
+    if (!isValid || !selectedCategoryId) return;
 
-  // 등록 / 수정 버튼 클릭
-  const handleSubmit = () => {
-    if (!isValid) return;
-
-    if (isEdit) {
-      console.log("수정 요청:", {
-        id,
-        content,
-        categoryId: selectedCategoryId,
-        anonymous,
-      });
-      // TODO: PATCH /community/:id 수정 API
-    } else {
-      console.log("새 글 작성 요청:", {
-        content,
-        categoryId: selectedCategoryId,
-        anonymous,
-      });
-      // TODO: POST /community 생성 API
+    //카테고리 한 번 변환
+    const category = CATEGORY_ID_TO_CODE[selectedCategoryId];
+    if (!category) {
+      alert("카테고리를 다시 선택해주세요.");
+      return;
     }
 
-    navigate("/community", { replace: true });
+    try {
+      setSubmitting(true);
+
+      // 수정 모드
+      if (isEdit) {
+        const quizId = Number(id);
+        if (Number.isNaN(quizId)) {
+          alert("잘못된 접근입니다.");
+          return;
+        }
+
+        try {
+          await updateCommunityQuiz({
+            quizId,
+            content,
+            category,
+            isAnonymous: anonymous,
+          });
+
+          alert("게시물이 수정되었습니다.");
+          // 수정 후 해당 게시글 상세로 보내거나, 커뮤니티 홈으로 이동
+          navigate(`/community/user/${quizId}`, { replace: true });
+        } catch (e: any) {
+          console.error(e);
+
+          if (e.code === "CANNOT_EDIT_QUIZ_WITH_COMMENTS") {
+            alert("댓글이 달린 게시물은 수정할 수 없습니다.");
+          } else if (e.code === "FORBIDDEN") {
+            alert("본인이 작성한 게시물만 수정할 수 있습니다.");
+          } else if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+            alert("로그인이 필요합니다. 다시 로그인해주세요.");
+            navigate("/login");
+            return;
+          } else {
+            alert(e.message ?? "게시물 수정 중 오류가 발생했습니다.");
+          }
+        } finally {
+          setSubmitting(false);
+        }
+
+        return;
+      }
+
+      //생성 모드
+      const quizId = await createCommunityQuiz({
+        content,
+        category,
+        isAnonymous: anonymous,
+      });
+
+      console.log("작성 완료, quizId:", quizId);
+      navigate("/community", { replace: true });
+    } catch (e: any) {
+      console.error(e);
+      if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+        alert("로그인이 필요합니다. 다시 로그인해주세요.");
+        navigate("/login");
+        return;
+      }
+      alert(e.message ?? "게시글 작성 중 오류가 발생했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -126,8 +183,8 @@ const CreateQPage = () => {
           <h2 className="typ-h5 mb-1">카테고리 선택</h2>
           <Category
             className="flex-wrap max-h-[80px] w-full"
-            activeId={selectedCategoryId ?? ""}          // 선택된 카테고리 표시
-            onChange={(id) => setSelectedCategoryId(id)} // 누르면 업데이트
+            activeId={selectedCategoryId ?? ""}
+            onChange={(id) => setSelectedCategoryId(id)}
           />
         </div>
 
@@ -136,7 +193,7 @@ const CreateQPage = () => {
           <BtnLong
             label={isEdit ? "수정하기" : "등록하기"}
             onClick={handleSubmit}
-            disabled={!isValid}
+            disabled={!isValid || submitting}
           />
         </div>
       </div>

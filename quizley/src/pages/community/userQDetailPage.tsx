@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 
 import Header from "@/component/header";
 import CommentList, {
@@ -7,10 +7,10 @@ import CommentList, {
 } from "@/component/commentList";
 import CommentInput from "@/component/commentInput";
 
-import DeletePostPop from "@/component/deletePostPop";     // 게시글 삭제
-import PostReportPop from "@/component/postReportPop";    // 게시물 신고
-import BlockUserPop from "@/component/blockUserPop";      // 사용자 차단
-import CantEditPop from "@/component/cantEditPop";        // 게시물 수정 불가 안내
+import DeletePostPop from "@/component/deletePostPop"; // 게시글 삭제
+import PostReportPop from "@/component/postReportPop"; // 게시물 신고
+import BlockUserPop from "@/component/blockUserPop"; // 사용자 차단
+import CantEditPop from "@/component/cantEditPop"; // 게시물 수정 불가 안내
 
 import CommentReportPop from "@/component/commentReportPop";
 import DeleteCommentPop from "@/component/deleteCommentPop";
@@ -24,93 +24,24 @@ import IconBlock from "@/assets/icon/icon_block.svg";
 import IconPen from "@/assets/icon/icon_pen.svg";
 import IconTrash from "@/assets/icon/icon_trash.svg";
 
-/* ------------------ 타입 & 더미 데이터 ------------------ */
+import {
+    fetchQuizDetail,
+    toggleQuizLike,
+    createQuizComment,
+    toggleCommentLike,
+    reportQuiz,
+    reportComment,
+    blockUser,
+    deleteQuiz,
+    deleteComment,
+    type QuizDetailCommentApi,
+    type QuizDetailApi,
+} from "@/api/communityApi";
 
-// 상세 페이지용 더미 게시글 타입
-type UserPostDetailDemo = {
-    postId: number;
-    kind: "user";
-    nickname: string;
-    title: string;
-    dateText: string;
-    likeCount: number;
-    commentCount: number;
-    liked: boolean;
-    myPost: boolean; // 내가 쓴 글인지 여부
-};
-
-// 댓글 상태용 타입
-type RawComment = {
-    commentId: number;
-    nickname: string;
-    dateText: string;  // "YYYY.MM.DD"
-    content: string;
-    likeCount: number;
-    myComments: boolean;
-    liked?: boolean;
-};
-
-// 게시물 관련 팝업 상태
-type PostModalType =
-    | "post-report"
-    | "block-user"
-    | "delete-post"
-    | "cant-edit"
-    | null;
-
-// 댓글 관련 팝업 상태
-type CommentModalType = "comment-report" | "delete-comment" | null;
-
-// 게시글 더미
-const demoPosts: UserPostDetailDemo[] = [
-    {
-        postId: 111,
-        kind: "user",
-        nickname: "홍길동",
-        title: "인공지능이 인간의 창의성을 넘을 수 있을까?",
-        dateText: "2025.10.05",
-        likeCount: 245,
-        commentCount: 154,
-        liked: false,
-        myPost: true, // T/F 바꿔가면서 테스트 가능
-    },
-];
-
-// 댓글 더미
-const initialComments: RawComment[] = [
-{
-    commentId: 555,
-    nickname: "익명1",
-    dateText: "2025.10.05",
-    content: "패턴 분석은 잘하지만 완전히 새로운 건 힘들 것 같아요.",
-    likeCount: 764,
-    myComments: false,
-    liked: false,
-  },
-  {
-    commentId: 515,
-    nickname: "아옹아옹",
-    dateText: "2025.10.05",
-    content: "언젠가 넘는 날이 올 수도",
-    likeCount: 590,
-    myComments: false,
-    liked: false,
-  },
-  {
-    commentId: 777,
-    nickname: "익명2",
-    dateText: "2025.10.05",
-    content: "이미 나보다 나은 거 같아",
-    likeCount: 310,
-    myComments: true,
-    liked: false,
-  },
-];
-
-/* ------------------ 유틸: 날짜 파싱 ------------------ */
+/* ------------------ 댓글 정렬용 유틸 ------------------ */
 
 const parseDate = (dateText: string) => {
-    // "2025.10.05" → Date
+    // "2025.11.24" → Date
     const [y, m, d] = dateText.split(".").map((v) => Number(v));
     return new Date(y, m - 1, d);
 };
@@ -121,186 +52,347 @@ const UserQDetailPage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    // URL에서 온 id를 숫자로 변환
-    const postId = Number(id);
-    const basePost =
-        demoPosts.find((p) => p.postId === postId) ?? demoPosts[0];
-    const isMyPost = basePost?.myPost ?? false;
+    const quizId = Number(id);
 
-    /* -------- 게시글(상단 카드) 상태 -------- */
-    const [detailPost, setDetailPost] = useState<DetailUserPost>({
-        id: basePost.postId,
-        kind: "user",
-        nickname: basePost.nickname,
-        title: basePost.title,
-        dateText: basePost.dateText,
-        likeCount: basePost.likeCount,
-        commentCount: basePost.commentCount,
-        liked: basePost.liked,
-    });
+    /* -------- 상태들 -------- */
 
-    /* -------- 댓글 상태 / 정렬 -------- */
-    const [commentItems, setCommentItems] =
-        useState<RawComment[]>(initialComments);
-    const [sortType, setSortType] =
-        useState<"latest" | "popular">("latest");
+    // 상단 게시글 카드
+    const [detailPost, setDetailPost] = useState<DetailUserPost | null>(null);
 
-    // 댓글이 하나라도 있는지
-    const hasComments = commentItems.length > 0;
+    // 댓글 원본(API 기준)
+    const [commentItems, setCommentItems] = useState<QuizDetailCommentApi[]>([]);
 
-    // 댓글 정렬 적용
-    const sortedComments = useMemo(() => {
-        const list = [...commentItems];
-        if (sortType === "popular") {
-            // 좋아요 많은 순
-            return list.sort((a, b) => b.likeCount - a.likeCount);
-        }
-        // 최신순 (날짜가 뒤일수록 위로)
-        return list.sort(
-            (a, b) =>
-                parseDate(b.dateText).getTime() -
-                parseDate(a.dateText).getTime()
-        );
-    }, [commentItems, sortType]);
+    // 내가 쓴 글인지 여부 (헤더 메뉴 분기용)
+    const [isMyPost, setIsMyPost] = useState(false);
 
-    // CommentList에 넘길 형태로 매핑
-    const commentListItems: UICommentItem[] = sortedComments.map(
-        (c) => ({
-            id: c.commentId,
-            nickname: c.nickname,
-            dateText: c.dateText,
-            content: c.content,
-            likeCount: c.likeCount,
-            liked: c.liked,
-            myComments: c.myComments,
-        })
+    // 게시글 작성자 userId (차단용 / 나중에 API 응답에 userId 포함된다고 가정)
+    const [postUserId, setPostUserId] = useState<number | null>(null);
+
+    // 현재 차단 팝업에서 차단하려는 userId
+    const [blockTargetUserId, setBlockTargetUserId] = useState<number | null>(
+        null
     );
 
-    // 댓글 개수 → "유저들의 생각 N개"
-    const commentCount = commentItems.length;
+    // 댓글 정렬 기준
+    const [sortType, setSortType] = useState<"latest" | "popular">("latest");
 
-    /* -------- 좋아요 핸들러들 -------- */
+    // 로딩/에러
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    // 게시글 좋아요
-    const handleTogglePostLike = (id: DetailUserPost["id"]) => {
-        setDetailPost((prev) => {
-            if (!prev || prev.id !== id) return prev;
-
-            const nextLiked = !prev.liked;
-            const nextCount = nextLiked
-                ? prev.likeCount + 1
-                : prev.likeCount - 1;
-
-            console.log("post like:", { postId: id, nextLiked, nextCount });
-
-            return {
-                ...prev,
-                liked: nextLiked,
-                likeCount: nextCount,
-            };
-        });
-    };
-
-    // 댓글 좋아요
-    const handleCommentLike = (id: number) => {
-        setCommentItems((prev) =>
-            prev.map((c) => {
-                if (c.commentId !== id) return c;
-                const nextLiked = !c.liked;
-                const nextCount = nextLiked
-                    ? c.likeCount + 1
-                    : c.likeCount - 1;
-
-                console.log("comment like:", {
-                    commentId: id,
-                    nextLiked,
-                    nextCount,
-                });
-
-                return {
-                    ...c,
-                    liked: nextLiked,
-                    likeCount: nextCount,
-                };
-            })
-        );
-    };
-
-    /* -------- 댓글 작성 -------- */
-
-    const handleAddComment = (text: string, isAnonymous: boolean) => {
-        const newId = Date.now(); // 임시 ID
-        const nickname = isAnonymous ? "익명" : "홍길동"; // 실제로는 로그인 유저 정보 사용
-
-        const today = "2025.10.05"; // 나중에 new Date()로 포맷해서 사용
-
-        const newComment: RawComment = {
-            commentId: newId,
-            nickname,
-            dateText: today,
-            content: text,
-            likeCount: 0,
-            myComments: !isAnonymous, // 예시: 익명 아닐 때만 '내 댓글'로 표시
-            liked: false,
-        };
-
-        setCommentItems((prev) => [...prev, newComment]);
-
-        // 상단 카드의 댓글 개수도 같이 증가
-        setDetailPost((prev) =>
-            prev
-                ? { ...prev, commentCount: prev.commentCount + 1 }
-                : prev
-        );
-
-        console.log("새 댓글 추가:", newComment);
-    };
-
-    /* -------- 헤더 ... 메뉴 (게시물) -------- */
-
+    // 게시물 관련 팝업
+    type PostModalType =
+        | "post-report"
+        | "block-user"
+        | "delete-post"
+        | "cant-edit"
+        | null;
     const [showPostMenu, setShowPostMenu] = useState(false);
     const [postModal, setPostModal] = useState<PostModalType>(null);
 
-    /* -------- Toast관련 ---------*/
-    // 토스트 상태
+    // 댓글 관련 팝업
+    type CommentModalType = "comment-report" | "delete-comment" | null;
+    const [showCommentMenu, setShowCommentMenu] = useState(false);
+    const [commentModal, setCommentModal] = useState<CommentModalType>(null);
+    const [targetCommentId, setTargetCommentId] = useState<number | null>(null);
+
+    // 토스트
     const [toast, setToast] = useState<{ visible: boolean; message: string }>({
         visible: false,
         message: "",
     });
 
-    // 토스트 띄우는 공통 함수
     const showToast = (message: string) => {
         setToast({ visible: true, message });
-
-        // 2초 후 자동으로 사라지게
         setTimeout(() => {
             setToast((prev) => ({ ...prev, visible: false }));
         }, 2000);
     };
 
-    /* -------- 댓글 메뉴 & 모달 -------- */
-
-    const [showCommentMenu, setShowCommentMenu] = useState(false);
-    const [commentModal, setCommentModal] =
-        useState<CommentModalType>(null);
-    const [targetCommentId, setTargetCommentId] =
-        useState<number | null>(null);
-
-    const targetComment =
-        targetCommentId === null
-            ? null
-            : commentItems.find((c) => c.commentId === targetCommentId) ??
-            null;
-
-    const isMyComment = targetComment?.myComments ?? false;
-
-    // 메뉴/모달 공통 닫기
-    const closePostModal = () => setPostModal(null);
+    const closePostModal = () => {
+        setPostModal(null);
+        setBlockTargetUserId(null);
+    };
     const closeCommentModal = () => setCommentModal(null);
 
-    // 댓글 메뉴 열기
-    const handleOpenCommentMenu = (id: number) => {
-        setTargetCommentId(id);
+    /* -------- 상세 데이터 로딩 -------- */
+    const reloadDetail = async () => { //댓글 단후 새로고침
+        setLoading(true);
+        setError(null);
+
+        try {
+            const data: QuizDetailApi = await fetchQuizDetail({
+                quizId,
+                sort: sortType,
+            });
+
+            const q = data.quiz as QuizDetailApi["quiz"] & { userId?: number };
+
+            setDetailPost({
+                id: q.quizId,
+                kind: "user",
+                nickname: q.nickname,
+                title: q.content,
+                dateText: q.createdAt,
+                likeCount: q.likeCount,
+                commentCount: q.commentCount,
+                liked: q.isLiked,
+            });
+
+            setCommentItems(data.comments ?? []);
+            setIsMyPost(q.isMine ?? false);
+
+            if (q.userId) setPostUserId(q.userId);
+        } catch (e: any) {
+            console.error("퀴즈 상세 로딩 실패:", e);
+
+            if (e.status === 404 || e.code === "QUIZ_NOT_FOUND") {
+                alert("해당 퀴즈를 찾을 수 없습니다.");
+                navigate("/community", { replace: true });
+                return;
+            }
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+                alert("로그인이 필요합니다. 다시 로그인해주세요.");
+                navigate("/login");
+                return;
+            }
+
+            setError(e.message ?? "게시글을 불러오지 못했습니다.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!quizId) return;
+
+        reloadDetail();
+    }, [quizId, sortType, navigate]);
+
+    // 헤더 메뉴 닫힘 효과
+    useEffect(() => {
+        if (!showPostMenu) return;
+
+        const handleClickOutside = () => {
+            setShowPostMenu(false);
+        };
+
+        // 50ms 딜레이 → 메뉴 버튼 클릭 시 즉시 닫히는 버그 방지
+        setTimeout(() => {
+            document.addEventListener("click", handleClickOutside);
+        }, 50);
+
+        return () => {
+            document.removeEventListener("click", handleClickOutside);
+        };
+    }, [showPostMenu]);
+
+    // 댓글 메뉴 닫힘 효과
+    useEffect(() => {
+        if (!showCommentMenu) return;
+
+        const handleClickOutside = () => {
+            setShowCommentMenu(false);
+        };
+
+        setTimeout(() => {
+            document.addEventListener("click", handleClickOutside);
+        }, 50);
+
+        return () => {
+            document.removeEventListener("click", handleClickOutside);
+        };
+    }, [showCommentMenu]);
+
+    /* -------- 파생 값들 -------- */
+
+    const hasComments = commentItems.length > 0;
+
+    const commentCount = commentItems.length;
+
+    const sortedComments = [...commentItems].sort((a, b) => {
+        if (sortType === "popular") {
+            return b.likeCount - a.likeCount;
+        }
+        // latest
+        return (
+            parseDate(b.createdAt).getTime() - parseDate(a.createdAt).getTime()
+        );
+    });
+
+    const commentListItems: UICommentItem[] = sortedComments.map((c) => ({
+        id: c.commentId,
+        nickname: c.nickname,
+        dateText: c.createdAt,
+        content: c.content,
+        likeCount: c.likeCount,
+        liked: c.isLiked,
+        myComments: c.isMine,
+    }));
+
+    const targetComment =
+        targetCommentId == null
+            ? null
+            : commentItems.find((c) => c.commentId === targetCommentId) ?? null;
+
+    const isMyComment = targetComment?.isMine ?? false;
+
+
+    /* -------- 좋아요 핸들러들 -------- */
+
+    // 게시글 좋아요
+    const handleTogglePostLike = async (targetId: DetailUserPost["id"]) => {
+        if (!detailPost || detailPost.id !== targetId) return;
+
+        setDetailPost((prev) => {
+            if (!prev) return prev;
+            const nextLiked = !prev.liked;
+            const nextCount = nextLiked
+                ? prev.likeCount + 1
+                : prev.likeCount - 1;
+            return { ...prev, liked: nextLiked, likeCount: nextCount };
+        });
+
+        try {
+            await toggleQuizLike(Number(targetId));
+        } catch (e: any) {
+            console.error("게시글 좋아요 실패:", e);
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+                alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+                navigate("/login");
+                return;
+            }
+
+            showToast("좋아요 처리 중 오류가 발생했습니다.");
+
+            // 실패 시 롤백
+            setDetailPost((prev) => {
+                if (!prev) return prev;
+                const nextLiked = !prev.liked;
+                const nextCount = nextLiked
+                    ? prev.likeCount + 1
+                    : prev.likeCount - 1;
+                return { ...prev, liked: nextLiked, likeCount: nextCount };
+            });
+        }
+    };
+
+    // 댓글 좋아요
+    const handleCommentLike = async (commentId: number) => {
+        setCommentItems((prev) =>
+            prev.map((c) => {
+                if (c.commentId !== commentId) return c;
+                const nextLiked = !c.isLiked;
+                const nextCount = nextLiked ? c.likeCount + 1 : c.likeCount - 1;
+                return { ...c, isLiked: nextLiked, likeCount: nextCount };
+            })
+        );
+
+        try {
+            await toggleCommentLike(commentId);
+        } catch (e: any) {
+            console.error("댓글 좋아요 실패:", e);
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+                alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+                navigate("/login");
+                return;
+            }
+
+            showToast("댓글 좋아요 처리 중 오류가 발생했습니다.");
+
+            // 3) 실패 시 롤백
+            setCommentItems((prev) =>
+                prev.map((c) => {
+                    if (c.commentId !== commentId) return c;
+                    const nextLiked = !c.isLiked;
+                    const nextCount = nextLiked
+                        ? c.likeCount + 1
+                        : c.likeCount - 1;
+                    return { ...c, isLiked: nextLiked, likeCount: nextCount };
+                })
+            );
+        }
+    };
+
+    /* -------- 댓글 작성 -------- */
+
+    const handleAddComment = async (text: string, isAnonymous: boolean) => {
+        const content = text.trim();
+        if (!content) return;
+
+        try {
+            await createQuizComment({
+                quizId,
+                content,
+                isAnonymous,
+            });
+
+            //바로 상세 재조회
+            await reloadDetail();
+
+            showToast("댓글이 등록되었습니다.");
+        } catch (e: any) {
+            console.error("댓글 작성 실패:", e);
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+                alert("로그인이 필요합니다. 다시 로그인해주세요.");
+                navigate("/login");
+                return;
+            }
+
+            if (e.status === 404 || e.code === "QUIZ_NOT_FOUND") {
+                alert("해당 퀴즈를 찾을 수 없습니다.");
+                navigate("/community", { replace: true });
+                return;
+            }
+
+            showToast(e.message ?? "댓글 작성 중 오류가 발생했습니다.");
+        }
+    };
+
+
+    /* -------- 댓글 삭제 -------- */
+
+    const deleteTargetComment = async () => {
+        if (targetCommentId === null) return;
+
+        try {
+            await deleteComment(targetCommentId);
+
+            setCommentItems((prev) =>
+                prev.filter((c) => c.commentId !== targetCommentId)
+            );
+
+            setDetailPost((prev) =>
+                prev ? { ...prev, commentCount: prev.commentCount - 1 } : prev
+            );
+
+            showToast("댓글이 삭제되었습니다.");
+        } catch (e: any) {
+            console.error("댓글 삭제 실패:", e);
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+                alert("로그인이 필요합니다. 다시 로그인해주세요.");
+                navigate("/login");
+                return;
+            }
+
+            if (e.status === 403 || e.code === "FORBIDDEN") {
+                showToast("댓글을 삭제할 권한이 없습니다.");
+                return;
+            }
+
+            showToast(e.message ?? "댓글 삭제 중 오류가 발생했습니다.");
+        }
+    };
+
+    /* -------- 댓글 메뉴 & 모달 -------- */
+
+    const handleOpenCommentMenu = (cid: number) => {
+        setTargetCommentId(cid);
         setShowCommentMenu(true);
     };
 
@@ -308,22 +400,34 @@ const UserQDetailPage = () => {
         setShowCommentMenu(false);
     };
 
-    // 댓글 삭제 실제 반영 (delete 모달 확인 시 사용)
-    const deleteTargetComment = () => {
-        if (targetCommentId === null) return;
-        setCommentItems((prev) =>
-            prev.filter((c) => c.commentId !== targetCommentId)
-        );
-        // 상단 카드의 댓글 수 감소
-        setDetailPost((prev) =>
-            prev
-                ? { ...prev, commentCount: prev.commentCount - 1 }
-                : prev
-        );
-        console.log("댓글 삭제:", targetCommentId);
-    };
-
     /* ================== 렌더 ================== */
+
+    if (loading && !detailPost) {
+        return (
+            <div className="relative w-full max-w-[393px] mx-auto min-h-screen flex items-center justify-center">
+                <span className="typ-b2 text-neutral-500">불러오는 중...</span>
+            </div>
+        );
+    }
+
+    if (error && !detailPost) {
+        return (
+            <div className="relative w-full max-w-[393px] mx-auto min-h-screen flex items-center justify-center">
+                <span className="typ-b2 text-red-500">{error}</span>
+            </div>
+        );
+    }
+
+    if (!detailPost) {
+        // quizId는 있는데 데이터가 없을 때
+        return (
+            <div className="relative w-full max-w-[393px] mx-auto min-h-screen flex items-center justify-center">
+                <span className="typ-b2 text-neutral-500">
+                    게시글 정보를 불러올 수 없습니다.
+                </span>
+            </div>
+        );
+    }
 
     return (
         <div className="relative w-full max-w-[393px] mx-auto min-h-screen">
@@ -347,10 +451,8 @@ const UserQDetailPage = () => {
                                         className="w-full h-[36px] px-2 py-2 flex items-center justify-between gap-2 hover:bg-neutral-50 border-b border-neutral-200"
                                         onClick={() => {
                                             if (!hasComments) {
-                                                // 내 게시물이고, 아직 댓글이 없으면 수정 페이지로 이동
                                                 navigate(`/community/edit/${detailPost.id}`);
                                             } else {
-                                                // 댓글이 이미 있으면 수정 불가 모달
                                                 setPostModal("cant-edit");
                                             }
                                             setShowPostMenu(false);
@@ -393,6 +495,8 @@ const UserQDetailPage = () => {
                                     <button
                                         className="w-full px-2 py-2 flex items-center justify-between gap-2 hover:bg-neutral-50 border-b border-neutral-200"
                                         onClick={() => {
+                                            // 게시글 작성자 차단
+                                            setBlockTargetUserId(postUserId);
                                             setPostModal("block-user");
                                             setShowPostMenu(false);
                                         }}
@@ -410,20 +514,13 @@ const UserQDetailPage = () => {
 
                 {/* ------------ 게시글 상세 카드 ------------ */}
                 <PostDetailCard
+                    commentCount={commentCount}
                     post={detailPost}
                     onToggleLike={handleTogglePostLike}
-                    onClickComment={(id) =>
-                        console.log("댓글 영역으로 스크롤 예정:", id)
-                    }
-
+                    onClickComment={(postId) => {
+                        console.log("댓글 영역으로 스크롤 예정:", postId);
+                    }}
                 />
-
-                {/* 포스트 하단: 유저들의 생각 N개 
-                <div className="w-full bg-white px-5 py-3 border-b border-neutral-200">
-                    <span className="typ-b1 text-neutral-400">
-                        유저들의 생각 {commentCount}개
-                    </span>
-                </div>*/}
 
                 {/* 회색 경계선 */}
                 <div className="w-full h-4 bg-neutral-50" />
@@ -508,7 +605,10 @@ const UserQDetailPage = () => {
                                         <button
                                             className="w-full h-[36px] px-2 py-2 flex items-center justify-between gap-2 hover:bg-neutral-50 border-b border-neutral-200"
                                             onClick={() => {
-                                                setPostModal("block-user"); // 같은 차단 팝업 사용
+                                                // 댓글 작성자 userId 기준 차단
+                                                const authorId = (targetComment as any)?.userId;
+                                                setBlockTargetUserId(authorId ?? null);
+                                                setPostModal("block-user");
                                                 setShowCommentMenu(false);
                                             }}
                                         >
@@ -525,7 +625,6 @@ const UserQDetailPage = () => {
 
                     {/* 댓글 리스트 */}
                     {commentItems.length === 0 ? (
-                        //댓글이 하나도 없을 때: 가운데 안내 문구
                         <div className="w-full bg-white px-5 py-16 text-center border-t border-neutral-200">
                             <p className="typ-b4 text-neutral-300">아직 댓글이 없습니다.</p>
                             <p className="typ-b1 text-neutral-300 mt-1">
@@ -537,17 +636,18 @@ const UserQDetailPage = () => {
                             items={commentListItems}
                             onClickLike={(id) => handleCommentLike(Number(id))}
                             onClickReport={(id) => {
-                                // 다른 유저 댓글에서 "댓글 신고"
                                 setTargetCommentId(Number(id));
                                 setCommentModal("comment-report");
                             }}
                             onClickBlock={(id) => {
-                                // 댓글 작성자 차단 (게시물 차단 팝업 재사용)
-                                setTargetCommentId(Number(id));
+                                const cid = Number(id);
+                                const c = commentItems.find(
+                                    (cmt) => cmt.commentId === cid
+                                ) as any;
+                                setBlockTargetUserId(c?.userId ?? null);
                                 setPostModal("block-user");
                             }}
                             onClickDelete={(id) => {
-                                // 내 댓글에서 "댓글 삭제"
                                 setTargetCommentId(Number(id));
                                 setCommentModal("delete-comment");
                             }}
@@ -555,7 +655,7 @@ const UserQDetailPage = () => {
                     )}
                 </div>
 
-                {/* ------------ 댓글 입력창 ------------ */}
+                {/* 댓글 입력창 */}
                 <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-40 w-full max-w-[393px]">
                     <CommentInput onSubmit={handleAddComment} />
                 </div>
@@ -565,34 +665,96 @@ const UserQDetailPage = () => {
             <DeletePostPop
                 open={postModal === "delete-post"}
                 onCancel={closePostModal}
-                onConfirm={() => {
-                    console.log("게시물 삭제");
-                    closePostModal();
+                onConfirm={async () => {
+                    try {
+                        await deleteQuiz(Number(detailPost.id));
+                        closePostModal();
+                        navigate("/community", { replace: true });
+                        showToast("게시물이 삭제되었습니다.");
+                    } catch (e: any) {
+                        console.error("게시물 삭제 실패:", e);
 
-                    navigate("/community");
-                    showToast("게시물이 삭제되었습니다.");
+                        if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+                            alert("로그인이 필요합니다. 다시 로그인해주세요.");
+                            navigate("/login");
+                            return;
+                        }
 
+                        if (e.status === 403 || e.code === "FORBIDDEN") {
+                            showToast("게시물을 삭제할 권한이 없습니다.");
+                            return;
+                        }
+
+                        showToast(e.message ?? "게시물 삭제 중 오류가 발생했습니다.");
+                    }
                 }}
             />
 
             <PostReportPop
                 open={postModal === "post-report"}
                 onCancel={closePostModal}
-                onConfirm={() => {
-                    console.log("게시물 신고");
-                    closePostModal();
-                    showToast("신고가 접수되었습니다.");
+                onConfirm={async () => {
+                    try {
+                        await reportQuiz(Number(detailPost.id));
+                        closePostModal();
+                        showToast("신고가 접수되었습니다.");
+                    } catch (e: any) {
+                        console.error("게시물 신고 실패:", e);
+
+                        if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+                            alert("로그인이 필요합니다. 다시 로그인해주세요.");
+                            navigate("/login");
+                            return;
+                        }
+
+                        if (e.code === "ALREADY_REPORTED") {
+                            showToast("이미 신고한 게시물입니다.");
+                            closePostModal();
+                            return;
+                        }
+
+                        showToast(e.message ?? "게시물 신고 중 오류가 발생했습니다.");
+                    }
                 }}
             />
 
             <BlockUserPop
                 open={postModal === "block-user"}
                 onCancel={closePostModal}
-                onConfirm={() => {
-                    console.log("사용자 차단");
-                    closePostModal();
-                    showToast("사용자가 차단되었습니다.");
+                onConfirm={async () => {
+                    if (!blockTargetUserId) {
+                        showToast("차단할 사용자를 찾을 수 없습니다.");
+                        closePostModal();
+                        return;
+                    }
 
+                    try {
+                        await blockUser(blockTargetUserId);
+                        closePostModal();
+                        showToast("사용자가 차단되었습니다.");
+                    } catch (e: any) {
+                        console.error("사용자 차단 실패:", e);
+
+                        if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+                            alert("로그인이 필요합니다. 다시 로그인해주세요.");
+                            navigate("/login");
+                            return;
+                        }
+
+                        if (e.code === "ALREADY_BLOCKED") {
+                            showToast("이미 차단한 사용자입니다.");
+                            closePostModal();
+                            return;
+                        }
+
+                        if (e.code === "CANNOT_BLOCK_YOURSELF") {
+                            showToast("자기 자신은 차단할 수 없습니다.");
+                            closePostModal();
+                            return;
+                        }
+
+                        showToast(e.message ?? "사용자 차단 중 오류가 발생했습니다.");
+                    }
                 }}
             />
 
@@ -605,22 +767,48 @@ const UserQDetailPage = () => {
             <CommentReportPop
                 open={commentModal === "comment-report"}
                 onCancel={closeCommentModal}
-                onConfirm={() => {
-                    console.log("댓글 신고:", targetCommentId);
-                    closeCommentModal();
-                    showToast("신고가 접수되었습니다.");
+                onConfirm={async () => {
+                    if (targetCommentId == null) {
+                        closeCommentModal();
+                        return;
+                    }
 
+                    try {
+                        await reportComment(targetCommentId);
+                        closeCommentModal();
+                        showToast("신고가 접수되었습니다.");
+                    } catch (e: any) {
+                        console.error("댓글 신고 실패:", e);
+
+                        if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+                            alert("로그인이 필요합니다. 다시 로그인해주세요.");
+                            navigate("/login");
+                            return;
+                        }
+
+                        if (e.code === "ALREADY_REPORTED") {
+                            showToast("이미 신고한 댓글입니다.");
+                            closeCommentModal();
+                            return;
+                        }
+
+                        if (e.code === "COMMENT_NOT_FOUND") {
+                            showToast("댓글을 찾을 수 없습니다.");
+                            closeCommentModal();
+                            return;
+                        }
+
+                        showToast(e.message ?? "댓글 신고 중 오류가 발생했습니다.");
+                    }
                 }}
             />
 
             <DeleteCommentPop
                 open={commentModal === "delete-comment"}
                 onCancel={closeCommentModal}
-                onConfirm={() => {
-                    deleteTargetComment();
+                onConfirm={async () => {
+                    await deleteTargetComment();
                     closeCommentModal();
-                    showToast("댓글이 삭제되었습니다.");
-
                 }}
             />
 

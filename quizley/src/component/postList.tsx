@@ -44,9 +44,9 @@ export default function PostList({
   onClickItem,
 }: Props) {
   // 좋아요 아이콘: sm → 20px, md → 24px
-  const likeIconClass = iconSize === "sm" ? "w-5 h-5" : "w-6 h-6";
+  const likeIconClass = iconSize === "sm" ? "w-5 h-5" : "w-5 h-5";
   // 댓글 아이콘: sm → 16px, md → 20px  (요청대로 한 단계 더 작게)
-  const commentIconClass = iconSize === "sm" ? "w-4 h-4" : "w-5 h-5";
+  const commentIconClass = iconSize === "sm" ? "w-4 h-4" : "w-4 h-4";
 
   return (
     <div className={`w-full ${className}`}>

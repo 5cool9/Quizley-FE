@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+// src/pages/community/TodayQDetailPage.tsx
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 import Header from "@/component/header";
 import CommentList, {
@@ -14,10 +15,25 @@ import PostDetailCard, {
   DetailDailyPost,
 } from "@/component/postDetailCards";
 
-// ------------------ 타입 & 더미 데이터 ------------------
+import {
+  fetchQuizDetail,
+  toggleCommentLike,
+  reportComment,
+  blockUser,
+  deleteComment,
+  type QuizDetailApi,
+} from "@/api/communityApi";
 
-// CommentList에서 타입을 재사용
-type CommentItem = CommentListItem;
+// ------------------ 타입 ------------------
+
+// 백엔드에서 받아오는 userId / isMine 같이
+// CommentListItem에 없는 필드도 쓰고 싶으니까 확장 타입 하나 정의
+type ExtendedCommentItem = CommentListItem & {
+  userId?: number;
+  isMine?: boolean;
+};
+
+type CommentItem = ExtendedCommentItem;
 
 type CommentModalType =
   | "comment-report"
@@ -25,48 +41,7 @@ type CommentModalType =
   | "delete-comment"
   | null;
 
-// 오늘의 질문 더미
-const dailyPostDemo: DetailDailyPost = {
-  id: 100,
-  kind: "daily",
-  title:
-    "하루 동안 모든 동물과 대화할 수 있다면 가장 먼저 어떤 질문을 할까?",
-  dateText: "2025.10.05",
-  commentCount: 3,
-};
-
-// 댓글 더미
-const initialComments: CommentItem[] = [
-  {
-    id: 1,
-    nickname: "JUJU",
-    dateText: "2025.10.05",
-    content: "우리집 고양이한테 어디 아픈데는 없냐고 물어볼래 😭",
-    likeCount: 920,
-    myComments: false,
-    liked: false,
-  },
-  {
-    id: 2,
-    nickname: "익명1",
-    dateText: "2025.10.08",
-    content: "사람이 되면 제일 해보고 싶은 게 뭐야?",
-    likeCount: 364,
-    myComments: false,
-    liked: false,
-  },
-  {
-    id: 3,
-    nickname: "익명2",
-    dateText: "2025.10.07",
-    content: "지구에서 살아가는 데 인간이 꼭 바꿔야 할 건 뭐라고 생각해?",
-    likeCount: 73,
-    myComments: true,
-    liked: false,
-  },
-];
-
-// 날짜 파싱 (최신순 정렬용)
+// 날짜 파싱 (최신순 정렬용) - "2025.11.18" 형식 기준
 const parseDate = (dateText: string) => {
   const [y, m, d] = dateText.split(".").map((v) => Number(v));
   return new Date(y, m - 1, d);
@@ -74,19 +49,22 @@ const parseDate = (dateText: string) => {
 
 const TodayQDetailPage = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
 
-  // 오늘의 질문 (필요하면 상태로 관리)
-  const [detailPost] = useState<DetailDailyPost>(dailyPostDemo);
+  // API에서 받은 전체 상세 데이터
+  const [quizDetail, setQuizDetail] = useState<QuizDetailApi | null>(null);
+
+  // 오늘의 질문 카드용 데이터
+  const [detailPost, setDetailPost] = useState<DetailDailyPost | null>(null);
 
   // 댓글 목록
-  const [commentItems, setCommentItems] =
-    useState<CommentItem[]>(initialComments);
+  const [commentItems, setCommentItems] = useState<CommentItem[]>([]);
 
   // 정렬 기준
   const [sortType, setSortType] =
     useState<"latest" | "popular">("popular");
 
-  // 어떤 댓글 기준으로 모달이 열려 있는지
+  // 모달 상태
   const [commentModal, setCommentModal] =
     useState<CommentModalType>(null);
   const [targetComment, setTargetComment] =
@@ -96,6 +74,11 @@ const TodayQDetailPage = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(
     null
   );
+
+  // 로딩/에러
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2000);
@@ -103,31 +86,110 @@ const TodayQDetailPage = () => {
 
   const closeCommentModal = () => setCommentModal(null);
 
-  // ------------ 댓글 좋아요 토글 ------------
-  const handleCommentLike = (id: number) => {
-    setCommentItems((prev) =>
-      prev.map((c) => {
-        if (c.id !== id) return c;
+  // ------------ 상세 조회 API 연동 ------------
 
-        const nextLiked = !c.liked;
-        const nextCount = nextLiked ? c.likeCount + 1 : c.likeCount - 1;
+  useEffect(() => {
+    if (!id) return;
 
-        console.log("comment like:", {
-          commentId: id,
-          liked: nextLiked,
-          likeCount: nextCount,
+    const quizId = Number(id);
+    if (Number.isNaN(quizId)) return;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchQuizDetail({
+          quizId,
+          sort: "latest", // 기본은 최신순으로 받아오고, 화면에서 정렬 다시 적용
         });
 
-        return {
-          ...c,
-          liked: nextLiked,
-          likeCount: nextCount,
+        setQuizDetail(data);
+
+        // 오늘의 질문 카드용 데이터 매핑
+        const q = data.quiz;
+        const daily: DetailDailyPost = {
+          id: q.quizId,
+          kind: "daily",
+          title: q.content,
+          dateText: q.createdAt, // "2025.11.18"
+          commentCount: q.commentCount,
         };
+        setDetailPost(daily);
+
+        // 댓글 목록 매핑
+        const mappedComments: CommentItem[] = (data.comments ?? []).map(
+          (c: any) => ({
+            id: c.commentId,
+            nickname: c.nickname,
+            dateText: c.createdAt, // "2025.11.18" 형식이라고 가정
+            content: c.content,
+            likeCount: c.likeCount,
+            liked: c.isLiked,
+            myComments: c.isMine ?? false, // 내 댓글인지 여부 (메뉴에서 삭제/신고 분기용)
+            userId: c.userId,              // 차단할 때 필요
+            isMine: c.isMine,              // 참고용
+          })
+        );
+        setCommentItems(mappedComments);
+      } catch (e: any) {
+        console.error("퀴즈 상세 조회 실패:", e);
+        if (e.status === 404 || e.code === "QUIZ_NOT_FOUND") {
+          setError("존재하지 않는 게시글입니다.");
+        } else if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+          alert("로그인이 필요합니다. 다시 로그인해주세요.");
+          navigate("/login");
+          return;
+        } else {
+          setError(e.message ?? "게시글을 불러오는 중 오류가 발생했습니다.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [id, navigate]);
+
+  // ------------ 댓글 좋아요 토글 (API 연동 + 낙관적 업데이트) ------------
+
+  const handleCommentLike = async (commentId: number) => {
+    // 1) UI 먼저 토글
+    setCommentItems((prev) =>
+      prev.map((c) => {
+        if (Number(c.id) !== commentId) return c;
+        const nextLiked = !c.liked;
+        const nextCount = nextLiked ? c.likeCount + 1 : c.likeCount - 1;
+        return { ...c, liked: nextLiked, likeCount: nextCount };
       })
     );
+
+    try {
+      await toggleCommentLike(commentId);
+    } catch (e: any) {
+      console.error("댓글 좋아요 실패:", e);
+
+      if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+        alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+        navigate("/login");
+        return;
+      }
+
+      showToast("댓글 좋아요 처리 중 오류가 발생했습니다.");
+
+      // 2) 실패 시 롤백
+      setCommentItems((prev) =>
+        prev.map((c) => {
+          if (Number(c.id) !== commentId) return c;
+          const nextLiked = !c.liked;
+          const nextCount = nextLiked ? c.likeCount + 1 : c.likeCount - 1;
+          return { ...c, liked: nextLiked, likeCount: nextCount };
+        })
+      );
+    }
   };
 
   // ------------ 댓글 정렬 ------------
+
   const sortedComments = useMemo(() => {
     const list = [...commentItems];
 
@@ -137,8 +199,8 @@ const TodayQDetailPage = () => {
 
     return list.sort(
       (a, b) =>
-        parseDate(b.dateText).getTime() -
-        parseDate(a.dateText).getTime()
+        parseDate(a.dateText).getTime() -
+        parseDate(b.dateText).getTime()
     );
   }, [commentItems, sortType]);
 
@@ -167,6 +229,35 @@ const TodayQDetailPage = () => {
     setCommentModal("delete-comment");
   };
 
+  // ------------ 로딩/에러 처리 ------------
+
+  if (loading && !detailPost) {
+    return (
+      <div className="relative bg-elevated w-full max-w-[393px] mx-auto min-h-screen">
+        <div className="flex h-full items-center justify-center">
+          로딩 중입니다...
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !detailPost) {
+    return (
+      <div className="relative bg-elevated w-full max-w-[393px] mx-auto min-h-screen">
+        <div className="flex h-full items-center justify-center text-neutral-500">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!detailPost || !quizDetail) {
+    return null;
+  }
+
+  const { quiz } = quizDetail;
+  const canComment = quiz.canComment;
+
   // ------------ 렌더링 ------------
 
   return (
@@ -185,7 +276,7 @@ const TodayQDetailPage = () => {
         <PostDetailCard
           post={detailPost}
           onToggleLike={() => {
-            // 오늘의 질문은 좋아요 기능 없으면 비워두기
+            // 오늘의 질문 좋아요 기능 생기면 여기에서 처리 (quiz.canLike 참고)
             console.log("오늘의 질문 상세 카드 클릭");
           }}
           onClickComment={(id) =>
@@ -198,12 +289,12 @@ const TodayQDetailPage = () => {
 
         {/* 댓글 리스트 & 정렬 */}
         <div className="comments-wrapper">
-          {/* 정렬 버튼 */}
+          {/* 정렬 버튼 (댓글이 있을 때만 의미 있음) */}
           <div className="px-5 w-full h-[75px] flex flex-row items-center gap-3">
-            {/* 인기순 */}
             <button
               onClick={() => setSortType("popular")}
               className="flex items-center gap-1"
+              disabled={commentCount === 0}
             >
               <span
                 className={`w-[8px] h-[8px] rounded-full ${
@@ -223,10 +314,10 @@ const TodayQDetailPage = () => {
               </span>
             </button>
 
-            {/* 최신순 */}
             <button
               onClick={() => setSortType("latest")}
               className="flex items-center gap-1"
+              disabled={commentCount === 0}
             >
               <span
                 className={`w-[8px] h-[8px] rounded-full ${
@@ -251,9 +342,7 @@ const TodayQDetailPage = () => {
           {commentCount > 0 ? (
             <CommentList
               items={sortedComments}
-              onClickLike={(id) =>
-                handleCommentLike(id as number)
-              }
+              onClickLike={(id) => handleCommentLike(Number(id))}
               onClickReport={handleReport}
               onClickBlock={handleBlock}
               onClickDelete={handleDelete}
@@ -264,7 +353,9 @@ const TodayQDetailPage = () => {
                 아직 댓글이 없습니다.
               </p>
               <p className="typ-b1 text-neutral-300 mt-1">
-                나만의 생각을 공유해 보세요.
+                {canComment
+                  ? "나만의 생각을 공유해 보세요."
+                  : "이 질문에는 댓글 작성이 불가능합니다."}
               </p>
             </div>
           )}
@@ -277,11 +368,30 @@ const TodayQDetailPage = () => {
       <CommentReportPop
         open={commentModal === "comment-report"}
         onCancel={closeCommentModal}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!targetComment) return;
-          console.log("댓글 신고:", targetComment.id);
-          closeCommentModal();
-          showToast("댓글이 신고되었습니다.");
+
+          try {
+            await reportComment(Number(targetComment.id));
+            closeCommentModal();
+            showToast("신고가 접수되었습니다.");
+          } catch (e: any) {
+            console.error("댓글 신고 실패:", e);
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+              alert("로그인이 필요합니다. 다시 로그인해주세요.");
+              navigate("/login");
+              return;
+            }
+
+            if (e.code === "ALREADY_REPORTED") {
+              showToast("이미 신고한 댓글입니다.");
+              closeCommentModal();
+              return;
+            }
+
+            showToast(e.message ?? "댓글 신고 중 오류가 발생했습니다.");
+          }
         }}
       />
 
@@ -289,11 +399,49 @@ const TodayQDetailPage = () => {
       <BlockUserPop
         open={commentModal === "block-user"}
         onCancel={closeCommentModal}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!targetComment) return;
-          console.log("사용자 차단:", targetComment.nickname);
-          closeCommentModal();
-          showToast("사용자가 차단되었습니다.");
+
+          const userId = (targetComment as any).userId;
+          if (!userId) {
+            showToast("차단할 사용자를 찾을 수 없습니다.");
+            closeCommentModal();
+            return;
+          }
+
+          try {
+            await blockUser(userId);
+
+            // UI에서 해당 유저의 모든 댓글 제거
+            setCommentItems((prev) =>
+              prev.filter((c) => (c as any).userId !== userId)
+            );
+
+            closeCommentModal();
+            showToast("사용자가 차단되었습니다.");
+          } catch (e: any) {
+            console.error("사용자 차단 실패:", e);
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+              alert("로그인이 필요합니다. 다시 로그인해주세요.");
+              navigate("/login");
+              return;
+            }
+
+            if (e.code === "ALREADY_BLOCKED") {
+              showToast("이미 차단한 사용자입니다.");
+              closeCommentModal();
+              return;
+            }
+
+            if (e.code === "CANNOT_BLOCK_YOURSELF") {
+              showToast("자기 자신은 차단할 수 없습니다.");
+              closeCommentModal();
+              return;
+            }
+
+            showToast(e.message ?? "사용자 차단 중 오류가 발생했습니다.");
+          }
         }}
       />
 
@@ -301,14 +449,33 @@ const TodayQDetailPage = () => {
       <DeleteCommentPop
         open={commentModal === "delete-comment"}
         onCancel={closeCommentModal}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!targetComment) return;
-          console.log("댓글 삭제:", targetComment.id);
-          setCommentItems((prev) =>
-            prev.filter((c) => c.id !== targetComment.id)
-          );
-          closeCommentModal();
-          showToast("댓글이 삭제되었습니다.");
+
+          try {
+            await deleteComment(Number(targetComment.id));
+
+            setCommentItems((prev) =>
+              prev.filter((c) => c.id !== targetComment.id)
+            );
+            closeCommentModal();
+            showToast("댓글이 삭제되었습니다.");
+          } catch (e: any) {
+            console.error("댓글 삭제 실패:", e);
+
+            if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+              alert("로그인이 필요합니다. 다시 로그인해주세요.");
+              navigate("/login");
+              return;
+            }
+
+            if (e.status === 403 || e.code === "FORBIDDEN") {
+              showToast("댓글을 삭제할 권한이 없습니다.");
+              return;
+            }
+
+            showToast(e.message ?? "댓글 삭제 중 오류가 발생했습니다.");
+          }
         }}
       />
 
