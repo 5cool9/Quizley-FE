@@ -1,0 +1,49 @@
+Quizley
+├── quizley
+│   ├── README.md
+│   ├── index.html
+│   ├── package.json                  # 의존성 및 스크립트 관리
+│   ├── public                        # 정적 파일
+│   │   └── favicon.svg
+│   ├── src
+│   │   ├── App.css
+│   │   ├── App.tsx
+│   │   ├── api                       # API 요청 관련 모듈
+│   │   │   ├── auth.ts               # 로그인/회원가입/토큰발급 API
+│   │   │   ├── balance.ts            # 밸런스 게임 관련 API
+│   │   │   ├── communityApi.ts       # 커뮤니티(게시글/댓글) 관련 API
+│   │   │   ├── notifications.ts      # 알림 관련 API
+│   │   │   ├── quiz.ts               # 오늘의 퀴즈, 주말 퀴즈 API
+│   │   │   └── request.ts            # axios/fetch 공통 설정 + 토큰 자동 재발급
+│   │   ├── assets                    # 이미지 및 아이콘
+│   │   │   ├── icon
+│   │   │   └── img
+│   │   ├── component                 # 재사용 가능한 컴포넌트
+│   │   │   ├── NotificationItem.tsx
+│   │   │   ├── answerQInput.tsx
+│   │   │   ├── btnLong.tsx
+│   │   │   ├── calender.tsx
+│   │   │   ├── ...
+│   │   ├── context                   # 레벨업을 위한 글로벌 상태 관리
+│   │   │   └── LevelCotext.tsx
+│   │   ├── index.css
+│   │   ├── main.tsx
+│   │   ├── pages                     # 실제 화면
+│   │   │   ├── AToSameQPage.tsx
+│   │   │   ├── community             # 커뮤니티 관련 화면
+│   │   │   │   ├── communityPage.tsx
+│   │   │   │   ├── ...
+│   │   │   │   └── weekendQDetailPage.tsx
+│   │   │   ├── editProfilePage.tsx
+│   │   │   ├── editSummaryPage.tsx
+│   │   │   ├── homePage.tsx
+│   │   │   ├── joinPage.tsx
+│   │   │   ├── ...
+│   │   ├── types
+│   │   │   └── assets.d.ts
+│   │   └── vite-env.d.ts   
+│   ├── tailwind.config.js            # Tailwind CSS 설정
+│   ├── tsconfig.json                 # TypeScript 설정
+│   └── vite.config.js                # Vite 개발/빌드 환경 설정
+└── structure.txt
+

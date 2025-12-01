@@ -5,6 +5,7 @@ import LeftIcon from "../assets/icon/icon_left.svg";
 import ChatBubble from "../component/chatBubble";
 import InputAnswer from "../component/inputAnswer";
 import CommuniAnalyzePop from "../component/communiAnalyzePop";
+import { sendMessage, getMessages } from "../api/chat";
 
 export default function QuizleyBotPage() {
   const navigate = useNavigate();
@@ -13,8 +14,13 @@ export default function QuizleyBotPage() {
 
   const question = location.state?.question || "질문이 없습니다.";
   const answer = location.state?.answer || "";
+  const quizId = location.state?.quizId;
+  const chatId = location.state?.chatId;
+
   const [userInput, setUserInput] = useState("");
-  const [messages, setMessages] = useState<{ text: string; timeText?: string }[]>([]);
+  const [messages, setMessages] = useState<
+    { role: "user" | "ai"; text: string; timeText?: string }[]
+  >([]);
   const [openAnalyzePop, setOpenAnalyzePop] = useState(false);
 
   const categoryNames: Record<string, string> = {
@@ -28,46 +34,107 @@ export default function QuizleyBotPage() {
 
   const categoryLabel = categoryNames[category ?? ""] || "카테고리";
 
-  const handleSend = () => {
+  // 현재 시간을 한국 시간 기준으로 "오전/오후 hh:mm" 반환
+const getCurrentTimeText = () => {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("ko-KR", {
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+    timeZone: "Asia/Seoul",
+  });
+  return formatter.format(now); // 예: "오후 9:27"
+};
+
+const formatToKoreanTime = (dateStr?: string) => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+
+  // 날짜가 Invalid일 경우
+  if (isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+    timeZone: "Asia/Seoul", // 한국 시간 적용
+  }).format(date);
+};
+
+
+  useEffect(() => {
+    if (!chatId) return;
+
+    async function loadMessages() {
+      try {
+        const data = await getMessages(chatId);
+
+        const loaded = data.messages.map((m: any) => ({
+          role: m.origin === "USER" ? "user" : "ai",
+          text: m.message,
+          timeText: m.date,
+        }));
+
+        setMessages(loaded);
+      } catch (err) {
+        console.error("채팅 불러오기 실패:", err);
+      }
+    }
+
+    loadMessages();
+  }, [chatId]);
+
+  const handleSend = async () => {
     if (!userInput.trim()) return;
-    const newMessage = { text: userInput, timeText: "오전 10:03" };
-    setMessages([...messages, newMessage]);
+    if (!chatId) {
+      console.error("chatId가 없습니다.");
+      return;
+    }
+
+    const text = userInput;
     setUserInput("");
+
+    // 사용자 메시지 반영 + 현재 시간 적용
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", text, timeText: getCurrentTimeText() },
+    ]);
+
+    try {
+      const res = await sendMessage({ chatId, message: text });
+
+      // AI 답변 추가 (서버에서 받은 시간 그대로)
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", text: res.aiMessage.message, timeText: formatToKoreanTime(res.aiMessage.date), },
+      ]);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-
   return (
     <div className="min-h-screen bg-neutral-50">
-      {/* iPhone 프레임 */}
       <div className="mx-auto w-full max-w-[394px] bg-neutral-50 pb-[86px] relative">
-
-        {/* 상단 헤더 */}
         <div className="bg-white pb-5">
           <div className="pt-9">
-            {/* 헤더 */}
             <div className="relative w-full px-5 flex items-center py-3">
-
-              {/* 왼쪽: 뒤로가기 아이콘 */}
               <button onClick={() => navigate(-1)} className="absolute left-5">
                 <img src={LeftIcon} alt="뒤로가기" className="w-6 h-6" />
               </button>
 
-              {/* 중앙 타이틀 */}
               <div className="absolute left-1/2 -translate-x-1/2 typ-h3 text-neutral-900 font-medium">
                 퀴즐리봇
               </div>
 
-              {/* 오른쪽: 대화 분석 버튼 */}
               <div className="absolute right-5">
                 <button
                   onClick={() => setOpenAnalyzePop(true)}
@@ -76,19 +143,14 @@ export default function QuizleyBotPage() {
                   대화 분석
                 </button>
               </div>
-
             </div>
           </div>
         </div>
 
         {/* 채팅 영역 */}
         <div className="px-5 mt-7">
-          {/* 선택한 카테고리 */}
-          <div className="typ-b7 text-primary-700">
-            {categoryLabel}
-          </div>
+          <div className="typ-b7 text-primary-700">{categoryLabel}</div>
 
-          {/* Today’s Quiz */}
           <p
             className="font-pretendard font-bold text-[28px] leading-[100%] mt-2"
             style={{ fontWeight: 700 }}
@@ -96,7 +158,6 @@ export default function QuizleyBotPage() {
             Today's Quiz
           </p>
 
-          {/* 날짜 자동 생성 */}
           <p
             className="font-pretendard text-[16px] leading-[100%] text-neutral-650 mt-2"
             style={{ fontWeight: 400 }}
@@ -115,36 +176,18 @@ export default function QuizleyBotPage() {
 
         {/* 채팅 버블 */}
         <div className="px-5 mt-6 flex flex-col gap-6 ">
-          {/* AI 버블 - 첫 질문 */}
-          <ChatBubble 
-            role="ai" 
-            text={question} 
-            timeText="오전 10:01"
-          />
-
-          {/* 사용자 버블 - 홈에서 넘어온 답변 */}
-          {answer && (
-            <ChatBubble 
-              role="user" 
-              text={answer} 
-              timeText="오전 10:02"
-            />
-          )}
-
-          {/* 사용자가 입력한 메시지 */}
           {messages.map((msg, idx) => (
             <ChatBubble
               key={idx}
-              role="user"
+              role={msg.role}
               text={msg.text}
               timeText={msg.timeText}
             />
           ))}
           <div ref={messagesEndRef} />
-
         </div>
 
-        {/* 하단 입력창 */}
+        {/* 입력창 */}
         <div className="fixed inset-x-0 bottom-0 bg-white border-t border-neutral-200 px-5 pt-3 pb-6">
           <InputAnswer
             value={userInput}
@@ -155,19 +198,15 @@ export default function QuizleyBotPage() {
         </div>
 
         <CommuniAnalyzePop
-        open={openAnalyzePop}
-        onCancel={() => setOpenAnalyzePop(false)}
-        onConfirm={() => {
-          navigate(`/analyze/${category}`, {
-            state: {
-                messages: messages,
-                category: category,
-            }
-          })
-          setOpenAnalyzePop(false);
-        }}
-      />
-
+          open={openAnalyzePop}
+          onCancel={() => setOpenAnalyzePop(false)}
+          onConfirm={() => {
+            navigate(`/analyze/${category}`, {
+              state: { messages: messages, category: category, chatId },
+            });
+            setOpenAnalyzePop(false);
+          }}
+        />
       </div>
     </div>
   );

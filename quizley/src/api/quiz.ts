@@ -14,6 +14,7 @@ export interface QuizData {
   completed: boolean;
   quizType: "WEEKDAY" | "WEEKEND";
   options?: QuizOption[];
+  chatId?: number;
 }
 
 export interface QuizResponse {
