@@ -6,15 +6,28 @@ import Header from "../component/header";
 import BtnLong from "../component/btnLong";
 import PostCompletePop from "../component/postCompletePop";
 import ShareCommunityPop from "../component/shareCommunityPop";
+import { getChatSummary } from "../api/chatSummary";
+import { completeChatComment } from "../api/chat";
+import { shareTodayInsightComment } from "../api/communityApi";
+
 
 export default function TodayInsightPage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { category, id } = useParams();
   const { state } = useLocation();
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [completedCategories, setCompletedCategories] = useState<Record<string, boolean>>({
+  mystery: false,
+  science: false,
+  literature: false,
+  art: false,
+  history: false,
+  psychology: false,
+});
   const [showPopup, setShowPopup] = useState(false);
   const [showSharePopup, setShowSharePopup] = useState(false);
+
+  const chatId = state?.chatId;
 
   const categoryNames: Record<string, string> = {
     mystery: "🕵🏻‍♂️ 미스터리",
@@ -25,151 +38,164 @@ export default function TodayInsightPage() {
     psychology: "❤️‍🔥 심리",
   };
 
-  // 더미 데이터 (API 연결 전까지 사용)
-  const defaultSummary =
-    "공중에 떠다니는 스크린은 사람들이 손에 들지 않아도 되기 때문에 편리함을 높일 수 있다고 생각했습니다.";
-
+  const defaultSummary = "";
 
   const categoryLabel = categoryNames[category ?? ""] || "카테고리";
-  const [summary, setSummary] = useState(
-    state?.summary || state?.editedSummary || defaultSummary
-  );
 
+  const [summary, setSummary] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [topComments, setTopComments] = useState<
+    { commentId: number; comment: string }[]
+  >([]);
+
+  const isCompleted = category ? completedCategories[category] : false;
+
+  // 요약 수정 후 뒤로 돌아올 때 반영
   useEffect(() => {
     if (state?.editedSummary) {
       setSummary(state.editedSummary);
     }
   }, [state]);
 
+  // API 연결: chatId 있을 때 요약, 피드백, 탑3 댓글 가져오기
+  useEffect(() => {
+  if (!chatId) return;
+
+  const fetchSummary = async () => {
+    try {
+      const res = await getChatSummary(chatId);
+
+      if (Array.isArray(res) && res.length > 0) {
+        const first = res[0];
+        setSummary(first.summary);
+        setFeedback(first.feedback);
+        setTopComments(first.topCommentDtoList || []);
+      } else if (res) {
+        setSummary(res.summary);
+        setFeedback(res.feedback);
+        setTopComments(res.topCommentDtoList || []);
+      }
+    } catch (err) {
+      console.error("요약 불러오기 실패:", err);
+      // 혹시 UI에서 알림 띄우고 싶으면 여기서 처리
+    }
+  };
+
+  fetchSummary();
+}, [chatId]);
+
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <div className="relative mx-auto w-full max-w-[393px] min-h-screen bg-neutral-50 flex flex-col">
-
         <div className="flex-1 overflow-y-auto pb-[180px]">
-         <div className="bg-white">
-          <div className="relative mx-auto pt-8 bg-white flex flex-col">
-            <Header
-              title="오늘의 인사이트"
-              onBack={() => navigate(-1)}
-              showMenu={false}
-              className="pt-1 pb-5"
-            />
-          </div>
+          <div className="bg-white">
+            <div className="relative mx-auto pt-8 bg-white flex flex-col">
+              <Header
+                title="오늘의 인사이트"
+                onBack={() => navigate(-1)}
+                showMenu={false}
+                className="pt-1 pb-5"
+              />
+            </div>
 
-          <div className="px-5 mt-5 ">
-            {/* 선택한 카테고리 */}
-            <div className="typ-b7 text-primary-700">{categoryLabel}</div>
+            <div className="px-5 mt-5 ">
+              <div className="typ-b7 text-primary-700">{categoryLabel}</div>
 
-            {/* Today’s Quiz */}
-            <p
-              className="font-pretendard font-bold text-[28px] leading-[100%] mt-2"
-              style={{ fontWeight: 700 }}
-            >
-              Today's Quiz
-            </p>
+              <p
+                className="font-pretendard font-bold text-[28px] leading-[100%] mt-2"
+                style={{ fontWeight: 700 }}
+              >
+                Today's Quiz
+              </p>
 
-            {/* 날짜 자동 생성 */}
-            <p
-              className="font-pretendard text-[16px] leading-[100%] text-neutral-650 mt-2"
-              style={{ fontWeight: 400 }}
-            >
-              {(() => {
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = String(today.getMonth() + 1).padStart(2, "0");
-                const date = String(today.getDate()).padStart(2, "0");
-                const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-                const day = weekdays[today.getDay()];
-                return `${year}. ${month}. ${date}. (${day})`;
-              })()}
-            </p>
-          </div>
+              <p
+                className="font-pretendard text-[16px] leading-[100%] text-neutral-650 mt-2"
+                style={{ fontWeight: 400 }}
+              >
+                {(() => {
+                  const today = new Date();
+                  const year = today.getFullYear();
+                  const month = String(today.getMonth() + 1).padStart(2, "0");
+                  const date = String(today.getDate()).padStart(2, "0");
+                  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+                  const day = weekdays[today.getDay()];
+                  return `${year}. ${month}. ${date}. (${day})`;
+                })()}
+              </p>
+            </div>
 
-          <div className="relative mx-auto mt-3 py-5 bg-white flex flex-col">
+            <div className="relative mx-auto mt-3 py-5 bg-white flex flex-col">
               {/* 요약 */}
               <div className="px-5 flex justify-between items-center">
                 <p className="typ-b6 text-neutral-650">퀴즐리봇 요약</p>
                 {!isCompleted && (
-                    <p
+                  <p
                     className="typ-b4 text-neutral-400"
                     onClick={() =>
-                        navigate(`/analyze/${category}/edit`, {
-                            state: { summary },
-                        })
+                      navigate(`/analyze/${category}/edit`, {
+                        state: { summary, chatId },
+                      })
                     }
-                    >
-                        수정
-                    </p>
+                  >
+                    수정
+                  </p>
                 )}
               </div>
 
               {/* 회색 박스 */}
               <div className="mt-2 px-5">
-                <div className="w-full rounded-xl bg-neutral-50 py-[20px] pr-[50px] pl-[20px] text-neutral-650 font-pretendard text-[16px]"
-                style={{ fontWeight: 400 }}>
-                  {summary}
+                <div
+                  className="w-full rounded-xl bg-neutral-50 py-[20px] px-[20px] text-neutral-650 font-pretendard text-[16px]"
+                  style={{ fontWeight: 400 }}
+                >
+                  {summary || "요약을 불러오는 중입니다..."}
                 </div>
               </div>
 
-
-            {/* 피드백 */}
+              {/* 피드백 */}
               <div className="mt-5 px-5 flex justify-between items-center">
                 <p className="typ-b6 text-neutral-650">퀴즐리봇 피드백</p>
               </div>
 
-              {/* 회색 박스 */}
               <div className="mt-2 px-5">
-                <div className="w-full rounded-xl bg-neutral-50 py-[20px] pr-[50px] pl-[20px] text-neutral-650 font-pretendard text-[16px]">
-                  번뜩이는 아이디어네요!💡 <br></br>
-                  반대로 생각해본다면 '접근성이 높아질수록 정보가 쉽게 노출될 수 있다'는 점도 고려해볼 수 있겠어요.<br></br>
-                  (균형 잡힌 사고 패턴👍)
+                <div className="w-full rounded-xl bg-neutral-50 py-[20px] px-[20px] text-neutral-650 font-pretendard text-[16px]">
+                  {feedback || "피드백을 불러오는 중입니다..."}
                 </div>
               </div>
             </div>
-           </div>
+          </div>
 
-              
-                {/* 유저의 생각 */}
-                <div className="mt-5 px-5 flex justify-between items-center">
-                    <p className="typ-b6 text-neutral-650">다른 유저의 생각 TOP3</p>
-                    <p className="typ-b4 text-neutral-400" onClick={() => navigate(`/today/${id}`)}>더보기</p>
-                </div>
+          {/* 유저의 생각 TOP3 */}
+          <div className="mt-5 px-5 flex justify-between items-center">
+            <p className="typ-b6 text-neutral-650">다른 유저의 생각 TOP3</p>
+            <p className="typ-b4 text-neutral-400" onClick={() => navigate(`/today/${id}`)}>
+              더보기
+            </p>
+          </div>
 
-                {/* 흰색 박스 */}
-                <div className="mt-2 px-5">
-                <div className="w-full rounded-xl bg-white py-[19px] px-[20px] text-neutral-650 font-pretendard text-[16px]">
-                  손짓으로 조작하는 홀로그램이 생길 것 같아요.
-                </div>
-              </div>
-
-              <div className="mt-2 px-5">
-                <div className="w-full rounded-xl bg-white py-[19px] px-[20px] text-neutral-650 font-pretendard text-[16px]">
-                  귀에 착용하는 미니 스크린이 나올지도?
-                </div>
-              </div>
-
-              <div className="mt-2 px-5">
-                <div className="w-full rounded-xl bg-white py-[19px] px-[20px] text-neutral-650 font-pretendard text-[16px]">
-                  기술이 줄어드는 대신 '아날로그 복귀'가 유행할 것 같아요.
-                </div>
-              </div>
-
+          {/* API에서 반환된 topCommentDtoList 3개 렌더링 */}
+          {topComments.slice(0, 3).map((c) => (
+            <div key={c.commentId} className="mt-2 px-5">
+              <div className="w-full rounded-xl bg-white py-[19px] px-[20px] text-neutral-650 font-pretendard text-[16px]">
+                {c.comment}
               </div>
             </div>
+          ))}
+        </div>
 
-        {/* 버튼*/}
+        {/* 버튼 */}
         <div className="fixed inset-x-0 bottom-[110px] mx-auto w-full max-w-[393px] px-5">
-            <BtnLong
+          <BtnLong
             label={isCompleted ? "내 답변 커뮤니티에 공유하기" : "답변 완료하기"}
             onClick={() => {
-                if (!isCompleted) {
-                    setShowPopup(true); 
-                } else {
-                    setShowSharePopup(true); 
-                }
+              if (!isCompleted) {
+                setShowPopup(true); // 팝업만 띄움
+              } else {
+                setShowSharePopup(true);
+              }
             }}
-            />
-
+          />
         </div>
 
         {/* 탭바 */}
@@ -180,26 +206,41 @@ export default function TodayInsightPage() {
         </div>
 
         <PostCompletePop
-        open={showPopup}
-        onCancel={() => setShowPopup(false)}
-        onConfirm={() => {
-            setIsCompleted(true);
-            setShowPopup(false);
-
-            // 완료페이지 보기 위한 임시 ( 커뮤니티로 공유하기 연결 전에는 지워야함 )
-            navigate("/home", {
-                state: { completedCategory: category } 
-            });
-        }}
+          open={showPopup}
+          onCancel={() => setShowPopup(false)}
+          onConfirm={async () => {
+            if (!chatId) return;
+            try {
+              await completeChatComment(chatId); // API 호출
+              setCompletedCategories(prev => ({ ...prev, [category!]: true })); // 카테고리별 완료 처리
+              setShowPopup(false);
+            } catch (err) {
+              console.error("답변 등록 실패:", err);
+              alert("답변 등록에 실패했습니다. 다시 시도해주세요.");
+            }
+          }}
         />
+
         <ShareCommunityPop
         open={showSharePopup}
         onCancel={() => setShowSharePopup(false)}
-        onConfirm={() => {
-            setShowSharePopup(false);
-            // 커뮤니티 공유 연결
+        onConfirm={async (anonymous) => {
+          if (!chatId) return;
+          try {
+            await shareTodayInsightComment({
+              chatId,
+              commentAnonymous: true, // 공개 여부
+              writerAnonymous: anonymous, // 팝업에서 체크한 값
+              });
+              alert("커뮤니티에 공유되었습니다!");
+              setShowSharePopup(false);
+            } catch (err) {
+              console.error(err);
+              alert("공유에 실패했습니다. 다시 시도해주세요.");
+            }
             }}
             />
+      </div>
     </div>
   );
 }

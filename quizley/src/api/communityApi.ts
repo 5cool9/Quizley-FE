@@ -527,3 +527,32 @@ export async function fetchWeekendQuizDetail({
 }) {
   return apiRequest(`/api/community/weekend/quiz/${quizId}?sort=${sort}`);
 }
+
+// 인사이트 커뮤니티 공유
+export async function shareTodayInsightComment(params: {
+  chatId: number;
+  commentAnonymous: boolean; // 공개 여부
+  writerAnonymous: boolean;  // 익명 여부
+}): Promise<void> {
+  const { chatId, commentAnonymous, writerAnonymous } = params;
+
+  const res = await apiRequest<{
+    status: number;
+    message: string;
+  }>(`/api/today/${chatId}/share`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      comment_anonymous: commentAnonymous,
+      writer_anonymous: writerAnonymous,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (res.status !== 200) {
+    const err: any = new Error(res.message ?? "커뮤니티 공유 실패");
+    err.status = res.status;
+    throw err;
+  }
+}

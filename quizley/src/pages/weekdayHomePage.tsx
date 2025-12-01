@@ -8,6 +8,8 @@ import BtnLong from "../component/btnLong";
 import Logo from "../assets/img/Quizley.svg";
 import BellIcon from "../assets/icon/icon_bell.svg";
 import CompleteImg from "../assets/img/completeIMG.svg";
+import { getTodayQuiz, QuizData } from "../api/quiz";
+import { createChatRoom } from "../api/chat";
 
 export default function WeekdayHomePage() {
   const navigate = useNavigate();
@@ -16,18 +18,18 @@ export default function WeekdayHomePage() {
 
   // 선택된 카테고리 상태
   const [activeCategory, setActiveCategory] = useState("mystery");
-
-  // 카테고리별 더미 질문 텍스트
-  const dummyQuestion: Record<string, string> = {
-    mystery: "휴대폰이 사라진 세상에서 사람들은 어떤 도구를 발명할까? ",
-    science: "🧬 과학 질문",
-    literature: "📚 문학 질문",
-    art: "🎨 예술 질문",
-    history: "⏳ 역사 질문",
-    psychology: "❤️‍🔥 심리 질문",
-  };
-
+  const [quizData, setQuizData] = useState<QuizData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [answer, setAnswer] = useState("");
+
+  const categoryMap: Record<string, string> = {
+    mystery: "미스터리",
+    science: "과학",
+    literature: "문학",
+    art: "예술",
+    history: "역사",
+    psychology: "심리",
+  };
 
   // 카테고리별 답변 완료 상태
   const [completedCategories, setCompletedCategories] = useState<Record<string, boolean>>({
@@ -39,23 +41,84 @@ export default function WeekdayHomePage() {
     psychology: false,
   });
 
-  // location.state로 완료된 카테고리 체크
-  useEffect(() => {
-    if (location.state?.completedCategory) {
-      setCompletedCategories((prev) => ({
-        ...prev,
-        [location.state.completedCategory]: true,
-      }));
-    }
-  }, [location.state]);
+  // useEffect: location.state로 완료된 카테고리 체크
+useEffect(() => {
+  const completedCategory = location.state?.completedCategory;
+  if (completedCategory && typeof completedCategory === "string") {
+    setCompletedCategories(prev => ({
+      ...prev,
+      [completedCategory]: true, // 기존 상태는 유지하고, 단일 카테고리만 true
+    }));
+  }
+}, [location.state]);
 
-  const handleSend = () => {
-    navigate(`/chat/${activeCategory}`, {
-      state: {
-        question: dummyQuestion[activeCategory],
-        answer: answer,
-      },
-    });
+// useEffect: 카테고리 변경 시 퀴즈 데이터 가져오기
+useEffect(() => {
+  async function fetchQuiz() {
+    try {
+      setLoading(true);
+      const res = await getTodayQuiz(categoryMap[activeCategory]); 
+      setQuizData(res.data);
+
+      console.log(`카테고리: ${activeCategory}, 서버 completed 값:`, res.data.completed);
+
+
+      // 기존 상태를 그대로 유지하고, 현재 카테고리만 서버 completed 값으로 덮어쓰기
+      setCompletedCategories(prev => ({
+        ...prev,
+        [activeCategory]: Boolean(res.data.completed),
+      }));
+    } finally {
+      setLoading(false);
+    }
+  }
+  fetchQuiz();
+}, [activeCategory]);
+
+
+  const handleSend = async () => {
+    if (!quizData) return;
+
+    try {
+      // 이미 서버에서 오늘의 카테고리 답변 완료 상태라면 새 방 만들지 않도록
+      if (quizData.chatId) {
+        console.log("새로운 채팅방 생성 생략");
+        navigate(`/chat/${activeCategory}`, {
+          state: {
+            question: quizData.content,
+            answer: answer,
+            quizId: quizData.quizId,
+            chatId: quizData.chatId,
+          },
+        });
+        setCompletedCategories(prev => ({
+        ...prev,
+        [activeCategory]: true,
+      }));
+      return;
+    }
+      
+
+      // 채팅방 생성 API 호출
+      const res = await createChatRoom({
+        quizId: quizData.quizId,
+        content: answer,
+      });
+
+      // chatId 받으면 QuizleyBotPage로 이동
+      navigate(`/chat/${activeCategory}`, {
+        state: {
+          question: quizData.content,
+          answer: answer,
+          quizId: quizData.quizId,
+          chatId: res.chatId,
+        },
+      });
+
+    } catch (error: any) {
+      console.error("채팅방 생성 실패:", error);
+      alert(error.message || "채팅방 생성 실패");
+    }
   };
 
   const community = () => {
@@ -90,7 +153,7 @@ export default function WeekdayHomePage() {
         >
           Today's Quiz
         </p>
-        
+
         <p
           className="font-pretendard text-[16px] leading-[100%] mt-3 text-neutral-400"
           style={{ fontWeight: 400 }}
@@ -127,7 +190,7 @@ export default function WeekdayHomePage() {
             }}
           >
             <div className="bg-white p-[20px] rounded-[14px]">
-              <p className="text-neutral-900 typ-b6">{dummyQuestion[activeCategory]}</p>
+              <p className="text-neutral-900 typ-b6">{quizData?.content}</p>
               <InputAnswer
                 value={answer}
                 onChange={setAnswer}
