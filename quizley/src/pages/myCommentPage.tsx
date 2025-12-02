@@ -1,6 +1,6 @@
 // src/pages/myCommentPage.tsx
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../component/header";
 import IconLike from "../assets/icon/icon_like_none.svg";
 import IconLikeOn from "../assets/icon/icon_like_activation.svg";
@@ -8,18 +8,19 @@ import { getMyComments } from "../api/mypage";
 
 type MyCommentItem = {
   commentId: number | string;
-  quizAuthor: string;   // 익명 / 단무지 등
-  quizKind: string;     // Quiz / 질문
-  quizTitle: string;    // 질문 제목
-  commentText: string;  // 내가 쓴 댓글 내용
-  dateText: string;     // YYYY.MM.DD
+  quizId: number;       
+  quizAuthor: string;    
+  quizKind: string;      
+  quizTitle: string;     
+  commentText: string;   
+  dateText: string;     
   likeCount: number;
   liked?: boolean;
 };
 
 export default function MyCommentPage() {
   const navigate = useNavigate();
-
+  const location = useLocation();
   const [comments, setComments] = useState<MyCommentItem[]>([]);
 
   // 내 댓글 목록 조회
@@ -31,7 +32,12 @@ export default function MyCommentPage() {
       .catch((error) => {
         console.error("작성한 댓글 목록 조회 실패:", error);
       });
-  }, []);
+  }, [location.key]);
+
+  // 카드 클릭 시 해당 퀴즈 상세로 이동
+  const handleGoDetail = (quizId: number) => {
+    navigate(`/community/user/${quizId}`);
+  };
 
   const handleToggleLike = (id: number | string) => {
     setComments((prev) =>
@@ -69,10 +75,10 @@ export default function MyCommentPage() {
             {comments.map((item) => (
               <article
                 key={item.commentId}
-                className="w-full bg-white px-5 py-5 border-b border-neutral-200"
+                className="w-full bg-white px-5 py-5 border-b border-neutral-200 cursor-pointer"
+                onClick={() => handleGoDetail(item.quizId)}  // 전체 카드 클릭 시 이동
               >
                 <div className="flex flex-col gap-5">
-                  {/* 질문 / 댓글 텍스트 부분 */}
                   <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-1">
                       <p className="typ-b1 text-neutral-400">
@@ -95,7 +101,10 @@ export default function MyCommentPage() {
 
                     <button
                       type="button"
-                      onClick={() => handleToggleLike(item.commentId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleLike(item.commentId);
+                      }}
                       className="flex items-center gap-1"
                       aria-label="좋아요"
                     >
