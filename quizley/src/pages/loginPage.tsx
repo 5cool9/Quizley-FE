@@ -27,9 +27,6 @@ export default function LoginPage({ onLogin, onSignup }: LoginPageProps) {
       setLoading(true);
       const data = await loginApi({ userId, password });
 
-      // 토큰 저장
-      saveTokens(data.accessToken, data.refreshToken);
-
       onLogin?.();
       nav("/home");
     } catch (error: any) {

@@ -70,6 +70,8 @@ export async function loginApi(payload: {
     throw error;
   }
 
+  saveTokens(data.accessToken, data.refreshToken);
+
   return data as {
     status: number;
     message: string;

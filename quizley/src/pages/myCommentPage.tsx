@@ -1,12 +1,13 @@
 // src/pages/myCommentPage.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../component/header";
 import IconLike from "../assets/icon/icon_like_none.svg";
 import IconLikeOn from "../assets/icon/icon_like_activation.svg";
+import { getMyComments } from "../api/mypage";
 
 type MyCommentItem = {
-  id: number | string;
+  commentId: number | string;
   quizAuthor: string;   // 익명 / 단무지 등
   quizKind: string;     // Quiz / 질문
   quizTitle: string;    // 질문 제목
@@ -19,67 +20,23 @@ type MyCommentItem = {
 export default function MyCommentPage() {
   const navigate = useNavigate();
 
-  const [comments, setComments] = useState<MyCommentItem[]>([
-    {
-      id: 1,
-      quizAuthor: "익명",
-      quizKind: "Quiz",
-      quizTitle:
-        "시간여행이 가능하다면, 과거와 미래 중 어디로 가고 싶어?",
-      commentText:
-        "미래도 과거도 안 갈거야. 미래로 갔다가 이미 내가 죽은 뒤로 가서 그냥 미래가 없거나 과거로 갔는데 내가 노비면 어떡해",
-      dateText: "2025.08.12",
-      likeCount: 41,
-    },
-    {
-      id: 2,
-      quizAuthor: "단무지",
-      quizKind: "질문",
-      quizTitle: "외계인 진짜 있다고 생각해?",
-      commentText:
-        "우주가 이렇게 넓은데 과연 지구에만 생명체가 있을까? 그게 더 어렵겠다",
-      dateText: "2025.05.10",
-      likeCount: 3,
-    },
-    {
-      id: 3,
-      quizAuthor: "익명",
-      quizKind: "Quiz",
-      quizTitle:
-        "만약 동물이 말을 할 수 있다면, 제일 시끄러운 동물은 뭐일까?",
-      commentText:
-        "우리집 앵무새 ㅠㅠ 이미 시끄러워서 그런 일은 일어나지 않았으면 조켄네...",
-      dateText: "2025.04.12",
-      likeCount: 244,
-    },
-    {
-      id: 4,
-      quizAuthor: "익명",
-      quizKind: "Quiz",
-      quizTitle:
-        "외계인 친구가 한국에 놀러오면 어떤 코스로 놀꺼야?",
-      commentText:
-        "놀이공원 가서 불꽃놀이까지 다 보고 집으로 순간이동",
-      dateText: "2025.04.01",
-      likeCount: 24,
-    },
-    {
-      id: 5,
-      quizAuthor: "익명",
-      quizKind: "Quiz",
-      quizTitle:
-        "꿈속에서 자유롭게 살 수 있다면 현실로 돌아오고 싶을까?",
-      commentText:
-        "수원오면 갈비랑 화이트롤 먹이고 화성행궁 산책하면서 우주전쟁나면 나만큼은 안 죽이겠다는 서약서를 꼭 받아낼거야",
-      dateText: "2025.04.01",
-      likeCount: 24,
-    },
-  ]);
+  const [comments, setComments] = useState<MyCommentItem[]>([]);
+
+  // 내 댓글 목록 조회
+  useEffect(() => {
+    getMyComments<MyCommentItem>()
+      .then((list) => {
+        setComments(list);
+      })
+      .catch((error) => {
+        console.error("작성한 댓글 목록 조회 실패:", error);
+      });
+  }, []);
 
   const handleToggleLike = (id: number | string) => {
     setComments((prev) =>
       prev.map((item) =>
-        item.id === id
+        item.commentId === id
           ? {
               ...item,
               liked: !item.liked,
@@ -111,25 +68,23 @@ export default function MyCommentPage() {
           <div>
             {comments.map((item) => (
               <article
-                key={item.id}
+                key={item.commentId}
                 className="w-full bg-white px-5 py-5 border-b border-neutral-200"
               >
                 <div className="flex flex-col gap-5">
                   {/* 질문 / 댓글 텍스트 부분 */}
                   <div className="flex flex-col gap-5">
-                    <div className="flex flex-col gap-5">
-                      <div className="flex flex-col gap-1">
-                        <p className="typ-b1 text-neutral-400">
-                          {item.quizAuthor}님이 만든 {item.quizKind}
-                        </p>
-                        <p className="typ-b2 text-neutral-500">
-                          {item.quizTitle}
-                        </p>
-                      </div>
-                      <p className="typ-b2 text-neutral-900 font-medium whitespace-pre-line">
-                        {item.commentText}
+                    <div className="flex flex-col gap-1">
+                      <p className="typ-b1 text-neutral-400">
+                        {item.quizAuthor}님이 만든 {item.quizKind}
+                      </p>
+                      <p className="typ-b2 text-neutral-500">
+                        {item.quizTitle}
                       </p>
                     </div>
+                    <p className="typ-b2 text-neutral-900 font-medium whitespace-pre-line">
+                      {item.commentText}
+                    </p>
                   </div>
 
                   {/* 날짜 + 좋아요 */}
@@ -140,7 +95,7 @@ export default function MyCommentPage() {
 
                     <button
                       type="button"
-                      onClick={() => handleToggleLike(item.id)}
+                      onClick={() => handleToggleLike(item.commentId)}
                       className="flex items-center gap-1"
                       aria-label="좋아요"
                     >

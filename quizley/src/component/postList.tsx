@@ -50,10 +50,10 @@ export default function PostList({
 
   return (
     <div className={`w-full ${className}`}>
-      {items.map((it) =>
+      {items.map((it, index) =>
         it.kind === "user" ? (
           <article
-            key={it.id}
+            key={`${it.kind}-${it.id}-${index}`}
             className="w-full bg-white px-5 py-5 border-b border-neutral-200"
             onClick={() => onClickItem?.(it.id, it.kind)}
           >
@@ -118,7 +118,7 @@ export default function PostList({
           </article>
         ) : (
           <article
-            key={it.id}
+            key={`${it.kind}-${it.id}-${index}`}
             className="w-full bg-white px-5 py-5 border-b border-neutral-200"
             onClick={() => onClickItem?.(it.id, it.kind)}
           >

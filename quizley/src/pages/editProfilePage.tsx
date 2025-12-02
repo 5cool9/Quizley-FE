@@ -1,23 +1,43 @@
 // src/pages/editProfilePage.tsx
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Header from "../component/header";
 import LoginInput from "../component/loginInput";
 import BtnLong from "../component/btnLong";
 import ProfileImg from "../assets/img/profileIMG.svg";
+import { getMyProfile, updateMyProfile } from "../api/mypage";
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
 
-  // 초기 값 (나중에 API 연동으로 교체)
-  const [nickname, setNickname] = useState("김슈니");
-  const userId = "swuni22";
-  const password = "swnii202";
+  // 초기 값 (API 연동)
+  const [nickname, setNickname] = useState("");
+  const [userId, setUserId] = useState("");
+  const passwordPlaceholder = "********";
 
-  // 프로필 이미지 미리보기
+  // 프로필 이미지 미리보기 + 파일
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const [profileFile, setProfileFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 닉네임/아이디/프로필 이미지 불러오기
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getMyProfile();
+        setNickname(data.nickname);
+        if (data.userId) {
+          setUserId(data.userId);
+        }
+        if ((data as any).profileImageUrl) {
+          setProfilePreview((data as any).profileImageUrl);
+        }
+      } catch (error) {
+        console.error("프로필 정보 조회 실패:", error);
+      }
+    })();
+  }, []);
 
   const handleClickProfile = () => {
     fileInputRef.current?.click();
@@ -28,16 +48,30 @@ export default function EditProfilePage() {
     if (!file) return;
     const url = URL.createObjectURL(file);
     setProfilePreview(url);
-    // 👉 실제 업로드 로직은 나중에 API 붙일 때 추가
+    setProfileFile(file);
   };
 
   // 닉네임이 비어 있으면 비활성, 한 글자라도 있으면 활성
   const isSubmitDisabled = nickname.trim().length === 0;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isSubmitDisabled) return;
-    // TODO: API 연동해서 프로필 수정 요청
-    console.log("프로필 수정 요청:", { nickname, userId });
+
+    try {
+      const formData = new FormData();
+      formData.append("nickname", nickname);
+      if (profileFile) {
+        // 필드 이름은 명세서에 맞게 수정 (예: "profileImage")
+        formData.append("profileImage", profileFile);
+      }
+
+      await updateMyProfile(formData);
+      alert("프로필이 수정되었습니다.");
+      navigate(-1);
+    } catch (error: any) {
+      console.error("프로필 수정 실패:", error);
+      alert(error?.message ?? "프로필 수정에 실패했습니다.");
+    }
   };
 
   return (
@@ -98,8 +132,8 @@ export default function EditProfilePage() {
             {/* 비밀번호 (수정 불가 – 나중에 별도 변경 화면 만들면 됨) */}
             <LoginInput
               label="비밀번호"
-              placeholder={password}
-              defaultValue={password}
+              placeholder={passwordPlaceholder}
+              defaultValue={passwordPlaceholder}
               disabled
               showClear={false}
               type="password"
