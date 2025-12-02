@@ -1,14 +1,86 @@
 // src/pages/recordPage.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TabBar from "../component/tabbar";
 import Calender from "../component/calender";
 import ReportMap from "../component/reportMap";
 import AiIcon from "../assets/icon/ai_profile.svg";
+import { getMyAnswerHistory, getReportSummary, type AnswerHistory, type ReportSummary } from "../api/record";
+import { getMyProfile } from "../api/mypage";
+
+// 리포트 레이더 차트용 카테고리 고정 순서
+const CATEGORY_ORDER: [string, string, string, string, string, string] = [
+  "미스테리",
+  "예술",
+  "문학",
+  "자연과학",
+  "심리학",
+  "역사",
+];
 
 export default function RecordPage() {
   const [tab, setTab] = useState<"calendar" | "report">("calendar");
   const navigate = useNavigate();
+
+  // 캘린더용 기록
+  const [history, setHistory] = useState<AnswerHistory | null>(null);
+  // 리포트 요약
+  const [summary, setSummary] = useState<ReportSummary | null>(null);
+  // 닉네임 불러오기
+  const [nickname, setNickname] = useState<string>("");
+
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // 첫 진입 시 캘린더 + 리포트 기록 동시 조회
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        setErrorMsg(null);
+
+        const [historyData, summaryData, profileData] = await Promise.all([
+          getMyAnswerHistory(),
+          getReportSummary(),
+          getMyProfile(),
+        ]);
+
+        setHistory(historyData);
+        setSummary(summaryData);
+        setNickname(profileData.nickname ?? "");
+      } catch (err: any) {
+        console.error("기록/리포트 조회 실패:", err);
+        setErrorMsg(err?.message ?? "기록을 불러오지 못했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const displayName = nickname || "사용자";
+
+  // 캘린더 탭에 쓸 데이터
+  const consecutiveDays = history?.consecutiveDays ?? summary?.streakDays ?? 0;
+  const answeredDates = history?.answeredDates ?? [];
+
+  // 리포트 탭에 쓸 데이터
+  const streakDays = summary?.streakDays ?? consecutiveDays;
+  const topPercent = summary?.topPercent ?? 0;
+  const dominantCategory = summary?.dominantCategory ?? "심리학";
+  const feedback =
+    summary?.feedback ??
+    "분야별 답변율 편차가 있네요. 다음에는 적은 분야에도 도전해보는 건 어떨까요?";
+
+    // 레이더 차트에 쓸 값 (0~1 범위라 가정)
+  const radarValues = CATEGORY_ORDER.map(
+    (cat) => summary?.scores?.[cat] ?? 0
+  );
+
+  // 어떤 축을 강조할지 (dominantCategory 기준)
+  const radarHighlightIndex = Math.max(
+    0,
+    CATEGORY_ORDER.findIndex((cat) => cat === dominantCategory)
+  );
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -16,7 +88,6 @@ export default function RecordPage() {
       <div className="mx-auto w-full max-w-[393px] pb-[86px]">
         {/* 상단 헤더 영역 (화이트 배경) */}
         <div className="bg-white">
-          {/* 제목 */}
           <div className="px-5 pt-6">
             <h1 className="text-[24px] font-bold text-neutral-900">기록</h1>
           </div>
@@ -70,7 +141,7 @@ export default function RecordPage() {
             <div className="px-5 h-[60px] flex items-center justify-end">
               <img src={AiIcon} alt="" className="w-6 h-6 mr-2" />
               <span className="text-[18px] font-semibold text-neutral-900">
-                8일
+                {consecutiveDays}일
               </span>
             </div>
 
@@ -78,10 +149,19 @@ export default function RecordPage() {
             <div className="flex justify-center">
               <div className="w-[394px]">
                 <Calender
-                  onWeekendClick={(date) => {
-                    // 주말 날짜 클릭 시 인사이트 페이지로 이동
-                    // date 필요하면 여기서 사용
-                    navigate("/weekend");
+                  answeredDates={answeredDates}
+                  onMarkedDayClick={(dateStr, _dateObj, { isWeekend }) => {
+                    if (isWeekend) {
+                      //주말에 도장이 찍힌 날 → weekendInsightPage
+                      navigate("/weekend", {
+                        state: { date: dateStr },
+                      });
+                    } else {
+                      //평일에 도장이 찍힌 날 → 평일 인사이트 페이지
+                      navigate("/weekday", {
+                        state: { date: dateStr },
+                      });
+                    }
                   }}
                 />
               </div>
@@ -95,11 +175,11 @@ export default function RecordPage() {
             {/* 연속 답변일 카드 */}
             <section className="bg-white rounded-[10px] border-b border-neutral-50 px-5 py-4">
               <p className="typ-b5 text-neutral-650">
-                김슈니님의 연속 답변일은 8일!
+                {displayName}님의 연속 답변일은 {streakDays}일!
               </p>
               <p className="typ-b5">
                 <span className="font-semibold text-neutral-900">
-                  상위 30%
+                  상위 {topPercent}%
                 </span>
                 <span className="text-neutral-650">예요</span>
               </p>
@@ -108,15 +188,20 @@ export default function RecordPage() {
             {/* 타입 + 레이더 차트 카드 */}
             <section className="bg-white rounded-[10px] border-b border-neutral-50 px-5 pt-5 pb-6">
               <p className="typ-b5 text-neutral-650">
-                <span>김슈니님은 </span>
-                <span className="font-semibold text-neutral-900">심리학자</span>
+                <span>{displayName}님은 </span>
+                <span className="font-semibold text-neutral-900">{dominantCategory}</span>
                 <span> 타입!</span>
                 <br />
-                <span>이번 달 심리학 질문에 가장 많은 답변을 했어요</span>
+                <span>이번 달 {dominantCategory} 질문에 가장 많은 답변을 했어요</span>
               </p>
 
               <div className="mt-6 flex justify-center">
-                <ReportMap className="-mt-2" />
+                <ReportMap 
+                  className="-mt-2"
+                  values={radarValues}
+                  labels={CATEGORY_ORDER}
+                  highlightIndex={radarHighlightIndex} 
+                />
               </div>
             </section>
 
@@ -125,11 +210,7 @@ export default function RecordPage() {
               <h2 className="typ-b5 font-medium text-neutral-700">AI 피드백</h2>
               <div className="bg-white rounded-[10px] border-b border-neutral-50 px-5 py-4">
                 <p className="typ-b5 text-neutral-650">
-                  김슈니님은 분야별 답변율 편차가 있네요
-                  <br />
-                  다음부터는 (가장 적은분야)에 도전해보는건
-                  <br />
-                  어떤가요? 더 재미있을지도 몰라요
+                 {feedback}
                 </p>
               </div>
             </section>
