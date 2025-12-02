@@ -11,6 +11,7 @@ import {
   InsightRecordItem,
   SameQuestionAnswerItem,
 } from "../api/insightRecord";
+import DeleteInsightPop from "../component/deleteInsightPop";
 
 type LocationState = {
   date?: string; // 기록 리스트/캘린더에서 넘겨주는 날짜 (YYYY-MM-DD)
@@ -65,10 +66,15 @@ export default function ReportTodayInsightPage() {
 
   // 상단 카테고리 라벨
   const categoryLabel = useMemo(() => {
-    if (!record?.category) return "카테고리";
-    const key = record.category.toLowerCase();
-    return categoryLabelMap[key] ?? record.category;
-  }, [record?.category]);
+  const cat = record?.category;
+  if (!cat) return "카테고리";
+
+  // 1) 한글 카테고리를 영어 key로 변환 시도
+  const engKey = categoryKeyMap[cat] ?? cat.toLowerCase();
+
+  // 2) 영어 key로 라벨(아이콘+텍스트) 찾고, 없으면 원래 한글 그대로
+  return categoryLabelMap[engKey] ?? cat;
+}, [record?.category]);
 
   // 오늘의 인사이트 기록 조회
   useEffect(() => {
@@ -167,7 +173,7 @@ export default function ReportTodayInsightPage() {
         <div className="flex-1 overflow-y-auto pb-[110px]">
           {/* 상단 헤더 */}
           <div className="bg-white">
-            <div className="pt-8">
+            <div className="pt-8 pb-3">
               <Header
                 title="오늘의 인사이트"
                 onBack={() => navigate(-1)}
@@ -194,20 +200,22 @@ export default function ReportTodayInsightPage() {
             </div>
           )}
 
-          {/* 상단 정보 영역 */}
-          <section className="bg-white px-5 pb-5 pt-4">
-            <p className="typ-b7 text-primary-700">{categoryLabel}</p>
-            <h2 className="mt-2 text-[22px] font-bold text-neutral-900">
+          {/* 상단 정보 영역 (카테고리 / 제목 / 날짜) */}
+          <section className="px-5 pt-4 pb-1">
+            <p className="text-[16px] font-semibold text-primary-700">
+              {categoryLabel}
+            </p>
+            <h2 className="mt-1 text-[22px] font-bold text-neutral-900">
               Today&apos;s Quiz
             </h2>
-            <p className="mt-2 text-[16px] text-neutral-650">
+            <p className="mt-1 text-[16px] text-neutral-650">
               {formattedDate || "날짜 정보 없음"}
             </p>
           </section>
 
           {/* 질문 카드 */}
-          <section className="px-5 pt-3">
-            <div className="rounded-[10px] bg-white px-5 py-4 shadow-[0_0_4px_rgba(0,0,0,0.12)]">
+          <section className="px-5 pt-4">
+            <div className="rounded-[10px] border-b border-neutral-100 bg-white px-5 py-5">
               <p className="whitespace-pre-line text-[16px] text-neutral-650">
                 {record?.question || "질문을 불러오는 중입니다..."}
               </p>
@@ -225,11 +233,13 @@ export default function ReportTodayInsightPage() {
           )}
 
           {/* 퀴즐리봇 요약 */}
-          <section className="mt-6 px-5">
+          <section className=" bg-white mt-5 px-5 py-4">
             <div className="mb-2 flex items-center justify-between">
-              <p className="typ-b6 text-neutral-650">퀴즐리봇 요약</p>
+              <p className="text-[16px] font-medium text-neutral-650">
+                퀴즐리봇 요약
+              </p>
             </div>
-            <div className="rounded-[10px] bg-neutral-50 px-5 py-4">
+            <div className="rounded-[10px] border-b border-neutral-100 bg-neutral-50 px-5 py-5">
               <p className="whitespace-pre-line text-[16px] text-neutral-650">
                 {record?.summary || "요약을 불러오는 중입니다..."}
               </p>
@@ -237,11 +247,13 @@ export default function ReportTodayInsightPage() {
           </section>
 
           {/* 퀴즐리봇 피드백 */}
-          <section className="mt-6 px-5">
+          <section className="bg-white px-5 pb-6">
             <div className="mb-2 flex items-center justify-between">
-              <p className="typ-b6 text-neutral-650">퀴즐리봇 피드백</p>
+              <p className="text-[16px] font-medium text-neutral-650">
+                퀴즐리봇 피드백
+              </p>
             </div>
-            <div className="rounded-[10px] bg-neutral-50 px-5 py-4">
+            <div className="rounded-[10px] border-b border-neutral-100 bg-neutral-50 px-5 py-5">
               <p className="whitespace-pre-line text-[16px] text-neutral-650">
                 {record?.feedback || "피드백을 불러오는 중입니다..."}
               </p>
@@ -249,12 +261,14 @@ export default function ReportTodayInsightPage() {
           </section>
 
           {/* 다른 유저의 생각 TOP3 */}
-          <section className="mt-6 px-5">
+          <section className="mt-8 px-5">
             <div className="mb-2 flex items-center justify-between">
-              <p className="typ-b6 text-neutral-650">다른 유저의 생각 TOP3</p>
+              <p className="text-[16px] font-medium text-neutral-650">
+                다른 유저의 생각 TOP3
+              </p>
               <button
                 type="button"
-                className="typ-b4 text-neutral-400"
+                className="text-[14px] font-medium text-neutral-400"
                 onClick={() => {
                   // TODO: 다른 유저 생각 전체 보기 화면으로 이동
                 }}
@@ -267,7 +281,7 @@ export default function ReportTodayInsightPage() {
               {dummyTop3.map((text, idx) => (
                 <div
                   key={idx}
-                  className="rounded-[10px] bg-white px-5 py-3 text-[16px] text-neutral-650"
+                  className="rounded-[10px] border-b border-neutral-100 bg-white px-5 py-4 text-[16px] text-neutral-650"
                 >
                   {text}
                 </div>
@@ -276,14 +290,14 @@ export default function ReportTodayInsightPage() {
           </section>
 
           {/* 같은 질문에 다시 답해보기 리스트 */}
-          <section className="mt-6 px-5 pb-10">
+          <section className="mt-8 px-5 pb-10">
             <div className="mb-2 flex items-center justify-between">
-              <p className="typ-b6 text-neutral-650">
+              <p className="text-[16px] font-medium text-neutral-650">
                 같은 질문에 다시 답해보기
               </p>
               <button
                 type="button"
-                className="leading-none text-[20px] font-bold text-neutral-400"
+                className="text-[20px] font-bold leading-none text-neutral-400"
                 onClick={handleGoSameQuestionEdit}
               >
                 +
@@ -299,7 +313,7 @@ export default function ReportTodayInsightPage() {
                 {answers.map((item) => (
                   <div
                     key={item.answerId}
-                    className="flex flex-col gap-2 rounded-[10px] bg-white px-5 py-4"
+                    className="flex flex-col gap-3 rounded-[10px] border-b border-neutral-100 bg-white px-5 py-5"
                   >
                     <p className="text-[12px] font-medium text-neutral-400">
                       {formatAnswerDate(item.createdAt)}
@@ -321,35 +335,16 @@ export default function ReportTodayInsightPage() {
           </div>
         </div>
 
-        {/* 삭제 확인 모달 */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40">
-            <div className="w-[312px] rounded-[20px] bg-white px-6 py-6 text-center">
-              <p className="mb-2 text-[18px] font-semibold text-neutral-900">
-                기록을 삭제하시겠습니까?
-              </p>
-              <p className="mb-6 text-[14px] text-neutral-500">
-                삭제된 기록은 복구할 수 없습니다.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="flex-1 rounded-[10px] border border-neutral-200 bg-white py-2 text-[15px] font-medium text-neutral-700"
-                  onClick={() => setShowDeleteConfirm(false)}
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  className="flex-1 rounded-[10px] bg-primary-600 py-2 text-[15px] font-medium text-white"
-                  onClick={handleConfirmDelete}
-                >
-                  확인
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+       {/* 🔹 삭제 확인 팝업 컴포넌트 사용 */}
+        <DeleteInsightPop
+          open={showDeleteConfirm}              
+          title="기록을 삭제하시겠습니까?"          
+          message="삭제된 기록은 복구할 수 없습니다." 
+          confirmText="삭제"                      
+          cancelText="취소"                      
+          onConfirm={handleConfirmDelete}        
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </div>
     </div>
   );
