@@ -121,13 +121,12 @@ const TodayQDetailPage = () => {
           (c: any) => ({
             id: c.commentId,
             nickname: c.nickname,
-            dateText: c.createdAt, // "2025.11.18" 형식이라고 가정
+            dateText: c.createdAt, // 오늘날짜일 때 "몇분 전, 방금 전" 등
             content: c.content,
             likeCount: c.likeCount,
             liked: c.isLiked,
-            myComments: c.isMine ?? false, // 내 댓글인지 여부 (메뉴에서 삭제/신고 분기용)
+            myComments: c.isMine ?? false, // 내 댓글인지 여부 (메뉴에서 삭제/신고용)
             userId: c.userId,              // 차단할 때 필요
-            isMine: c.isMine,              // 참고용
           })
         );
         setCommentItems(mappedComments);

@@ -24,54 +24,61 @@ const SearchListPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   // 검색 API 호출
-  useEffect(() => {
-    const load = async () => {
-      if (!searchQuery) {
-        setSearchResults([]);
-        return;
+ useEffect(() => {
+  const load = async () => {
+    if (!searchQuery) {
+      setSearchResults([]);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await fetchCommunitySearch({
+        keyword: searchQuery,
+        sortBy: sortType,
+      });
+
+      let quizzes = data.quizzes;
+
+      //카테고리 필터링
+      if (categoryParam) {
+        quizzes = quizzes.filter((q) => q.category === categoryParam);
       }
 
-      setLoading(true);
-      setError(null);
+      const posts: PostUser[] = quizzes.map((q) => ({
+        id: q.quizId,
+        kind: "user",
+        nickname: q.nickname ?? "익명",
+        title: q.content,
+        timeText: q.createdAt
+          ? q.createdAt
+          : q.publishedDate
+          ? q.publishedDate.replace(/-/g, ".")
+          : "",
+        likeCount: q.likeCount,
+        commentCount: q.commentCount,
+        liked: q.isLiked ?? false,
+      }));
 
-      try {
-        const data = await fetchCommunitySearch({
-          keyword: searchQuery,
-          sortBy: sortType,
-          category: categoryParam ?? undefined,
-        });
+      setSearchResults(posts);
+    } catch (e: any) {
+      console.error("검색 실패:", e);
+      setError(e.message ?? "검색 중 오류가 발생했습니다.");
 
-        const posts: PostUser[] = data.quizzes.map((q) => ({
-          id: q.quizId,
-          kind: "user",
-          nickname: q.nickname ?? "익명",
-          title: q.content,
-          timeText: q.createdAt
-            ? q.createdAt
-            : q.publishedDate
-            ? q.publishedDate.replace(/-/g, ".")
-            : "",
-          likeCount: q.likeCount,
-          commentCount: q.commentCount,
-          liked: q.isLiked ?? false,
-        }));
-
-        setSearchResults(posts);
-      } catch (e: any) {
-        console.error("검색 실패:", e);
-        setError(e.message ?? "검색 중 오류가 발생했습니다.");
-
-        if (e.status === 401 || (e.message ?? "").includes("로그인")) {
-          alert("로그인이 필요합니다. 다시 로그인해주세요.");
-          navigate("/login");
-        }
-      } finally {
-        setLoading(false);
+      if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+        alert("로그인이 필요합니다. 다시 로그인해주세요.");
+        navigate("/login");
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    load();
-  }, [searchQuery, sortType, categoryParam, navigate]);
+  load();
+}, [searchQuery, sortType, categoryParam, navigate]);
+
 
   // 검색어 입력 후 엔터 → URL q 파라미터 갱신
   const handleSearchSubmit = useCallback(
@@ -250,7 +257,7 @@ const SearchListPage = () => {
                 />
               </div>
               {/* 사용자 게시글 */}
-              <div className="pb-[90px]">
+              <div className="pb-[90px] cursor-pointer">
                 <PostList
                   items={userPosts}
                   onToggleLike={handleToggleLike}

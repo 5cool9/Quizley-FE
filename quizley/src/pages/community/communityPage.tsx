@@ -42,6 +42,7 @@ const CATEGORY_ID_TO_CODE: Record<string, CategoryCode> = {
   psychology: "심리",
 };
 
+
 /* ----------------------- 가로 드래그 스크롤 커스텀 훅----------------------- */
 
 const useDragScroll = () => {
@@ -93,6 +94,8 @@ const useDragScroll = () => {
   return { dragBind };
 };
 
+const CATEGORY_STORAGE_KEY = "communityCategory";
+
 /* ---------------------------------------------------- */
 
 const CommunityPage = () => {
@@ -112,6 +115,7 @@ const CommunityPage = () => {
   const mm2 = String(mm + 1).padStart(2, "0");
   const dd2 = String(dd).padStart(2, "0");
   const todayStr = `${yyyy}-${mm2}-${dd2}`;
+
 
   // 마지막으로 선택한 날짜(localStorage)
   const LAST_DATE_KEY = "community_last_date";
@@ -160,6 +164,18 @@ const CommunityPage = () => {
   // ---------------- 카테고리 영역 드래그 스크롤 ----------------
   const { dragBind: catDrag } = useDragScroll();
   const { ref: catDragRef, ...restCatDragBind } = catDrag;
+
+  // 처음 들어올 때 localStorage에서 마지막 카테고리 복원
+  useEffect(() => {
+    try {
+      const savedId = localStorage.getItem(CATEGORY_STORAGE_KEY);
+      if (savedId) {
+        setActiveCategoryId(savedId);
+      }
+    } catch (e) {
+      console.error("카테고리 localStorage 읽기 실패:", e);
+    }
+  }, []);
 
   // ---------------- 최초 마운트 시 말풍선 localStorage 확인 ----------------
   useEffect(() => {
@@ -211,6 +227,16 @@ const CommunityPage = () => {
 
     load();
   }, [selectedDate, activeCategoryId, nav]);
+
+  // 카테고리 변경 + localStorage 저장
+  const handleChangeCategoryId = (nextId: string) => {
+    setActiveCategoryId(nextId);
+    try {
+      localStorage.setItem(CATEGORY_STORAGE_KEY, nextId);
+    } catch (e) {
+      console.error("카테고리 localStorage 저장 실패:", e);
+    }
+  };
 
   // ---------------- 좋아요(일반/핫) ----------------
   const handleToggleLike = useCallback(
@@ -311,16 +337,14 @@ const CommunityPage = () => {
   };
 
   // 검색 관련 로직
-  const handleSearchSubmit = (query: string) => {
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery) return;
+  const handleSearchSubmit = (value: string) => {
+    const keyword = value.trim();
+    if (!keyword) return;
 
-    const categoryCode = CATEGORY_ID_TO_CODE[activeCategoryId];
+    const categoryKo = CATEGORY_ID_TO_CODE[activeCategoryId];
 
     nav(
-      `/community/search?q=${encodeURIComponent(
-        trimmedQuery
-      )}&category=${encodeURIComponent(categoryCode)}`
+      `/community/search?q=${encodeURIComponent(keyword)}&category=${encodeURIComponent(categoryKo)}`
     );
   };
 
@@ -519,7 +543,7 @@ const CommunityPage = () => {
           <Category
             className="h-[35px] flex-nowrap whitespace-nowrap"
             activeId={activeCategoryId}
-            onChange={setActiveCategoryId}
+            onChange={handleChangeCategoryId}
           />
         </div>
 
