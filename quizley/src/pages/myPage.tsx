@@ -1,22 +1,57 @@
 // src/pages/myPage.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TabBar from "../component/tabbar";
 import ProfileImg from "../assets/img/profileIMG.svg";
 import Badge from "../assets/img/badge.svg";
 import LogoutPop from "../component/logoutPop";
 import { logoutApi } from "../api/auth";
+import { getMyProfile } from "../api/mypage";
 
 export default function MyPage() {
   const navigate = useNavigate();
 
-  const currentLevel = 20;
-  const currentExp = 983;
-  const nextExp = 1200;
-  const progress = (currentExp / nextExp) * 100;
+  // 프로필 정보 (API 연동)
+  const [nickname, setNickname] = useState("김슈니");
+  const [currentLevel, setCurrentLevel] = useState(1);
+  const [currentExp, setCurrentExp] = useState(0);
+  const [nextExp, setNextExp] = useState(1);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+
+  const progress = nextExp > 0 ? (currentExp / nextExp) * 100 : 0;
 
   // 로그아웃 팝업 open 상태
   const [logoutOpen, setLogoutOpen] = useState(false);
+
+  // 마이페이지 프로필 정보 불러오기
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getMyProfile();
+
+        setNickname(data.nickname);
+        if (typeof data.level === "number") {
+          setCurrentLevel(data.level);
+        }
+        // 명세서에 따라 currentExp/nextExp 또는 exp/nextLevelExp 등일 수 있어 여유 있게 처리
+        if (typeof (data as any).currentExp === "number") {
+          setCurrentExp((data as any).currentExp);
+        } else if (typeof (data as any).exp === "number") {
+          setCurrentExp((data as any).exp);
+        }
+        if (typeof (data as any).nextExp === "number") {
+          setNextExp((data as any).nextExp);
+        } else if (typeof (data as any).nextLevelExp === "number") {
+          setNextExp((data as any).nextLevelExp);
+        }
+        if ("profileImageUrl" in data) {
+          setProfileImageUrl((data as any).profileImageUrl ?? null);
+        }
+      } catch (error) {
+        console.error("마이페이지 프로필 조회 실패:", error);
+      }
+    })();
+  }, []);
 
   // 메뉴 아이템 + 클릭 시 행동
   const menuItems: { label: string; onClick?: () => void }[] = [
@@ -68,16 +103,16 @@ export default function MyPage() {
           {/* 프로필 이미지 */}
           <div className="w-[100px] h-[100px] rounded-full border border-neutral-100 flex items-center justify-center overflow-hidden">
             <img
-              src={ProfileImg}
+              src={profileImageUrl ?? ProfileImg}
               alt="프로필 이미지"
-              className="w-[100px] h-[100px]"
+              className="w-[100px] h-[100px] object-cover"
             />
           </div>
 
           {/* 이름 + 레벨 배지 */}
           <div className="flex items-center gap-1">
             <span className="text-[20px] font-bold text-neutral-900">
-              김슈니
+              {nickname}
             </span>
             <div className="relative inline-flex items-center">
               <img src={Badge} alt="레벨 배지" className="h-[24px]" />
