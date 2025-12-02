@@ -23,21 +23,49 @@ function firstDayWeek(y: number, m: number) {
   return new Date(y, m, 1).getDay();
 }
 
-// 주말 클릭 콜백 props
+// "YYYY-MM-DD" → {year, month(0-base), day}
+function parseYMD(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return { year: y, month: m - 1, day: d };
+}
+
 type CalenderProps = {
+  answeredDates?: string[];          // API에서 받은 날짜 배열
   onWeekendClick?: (date: Date) => void;
+  onMarkedDayClick?: (
+    dateStr: string,
+    dateObj: Date,
+    meta: { isWeekend: boolean }
+  ) => void;
 };
 
-export default function Calender({ onWeekendClick }: CalenderProps) {
-  const [view, setView] = useState(() => new Date(2025, 5, 1));
+export default function Calender({
+  answeredDates = [],
+  onWeekendClick,
+  onMarkedDayClick, 
+}: CalenderProps) {
+  const [view, setView] = useState(() => {
+  const today = new Date();
+  return new Date(today.getFullYear(), today.getMonth(), 1);
+});
   const year = view.getFullYear();
   const month = view.getMonth();
 
-  const markedDays = useMemo<number[]>(
-    () => [5, 6, 7, 8, 9, 10, 11, 12],
-    [month, year]
+  // 연/월에 해당하는 '응답한 날짜들(day 숫자)'
+  const markedDays = useMemo(() => {
+    return answeredDates
+      .map(parseYMD)
+      .filter((d) => d.year === year && d.month === month)
+      .map((d) => d.day);
+  }, [answeredDates, year, month]);
+
+  const markedSet = useMemo(() => new Set(markedDays), [markedDays]);
+
+  // 가장 최근에 응답한 날짜를 강조(없으면 undefined)
+  const highlightDay = useMemo(
+    () => (markedDays.length ? Math.max(...markedDays) : undefined),
+    [markedDays]
   );
-  const highlightDay = 13;
 
   const totalDays = daysInMonth(year, month);
   const firstW = firstDayWeek(year, month);
@@ -130,15 +158,21 @@ export default function Calender({ onWeekendClick }: CalenderProps) {
 
         const left = getCellLeft(col);
         const top = getCellTop(row);
-        const isHL = n === highlightDay;
+        const isHL = highlightDay === n;
 
         const dateObj = new Date(year, month, n);
         const day = dateObj.getDay();
         const isWeekend = day === 0 || day === 6;
 
+        const isMarked = markedSet.has(n);
+
         const handleClick = () => {
-          if (isWeekend && onWeekendClick) {
-            onWeekendClick(dateObj);
+          if (isMarked && onMarkedDayClick) {
+            const mm = String(month + 1).padStart(2, "0");
+            const dd = String(n).padStart(2, "0");
+            const ymd = `${year}-${mm}-${dd}`;
+            onMarkedDayClick(ymd, dateObj, { isWeekend });
+            return;
           }
         };
 
@@ -164,7 +198,7 @@ export default function Calender({ onWeekendClick }: CalenderProps) {
         );
       })}
 
-      {/* 전구 아이콘 */}
+      {/* 전구 아이콘 (응답한 날짜들) */}
       {markedDays.map((n) => {
         if (n < 1 || n > totalDays) return null;
         const { row, col } = getRC(n);

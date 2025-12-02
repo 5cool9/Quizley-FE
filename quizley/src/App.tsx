@@ -20,10 +20,11 @@ import QuizleyBotPage from "./pages/quizleyBotPage";
 import TodayInsightPage from "./pages/todayInsightPage";
 import EditSummaryPage from "./pages/editSummaryPage";
 import NotificationPage from "./pages/notificationPage";
-
+import ReportTodayInsightPage from "./pages/RecordTodayInsightPage";
 // LevelUp Context
 import { useLevel } from "./context/LevelCotext";
 import LevelUpPop from "./component/levelupPop";
+
 
 export default function App() {
   const { isLevelUp, resetLevelUp } = useLevel();
@@ -60,6 +61,7 @@ export default function App() {
         {/* Record */}
         <Route path="/record" element={<RecordPage />} />
         <Route path="/weekend" element={<WeekendInsightPage />} />
+        <Route path="/weekday" element={<ReportTodayInsightPage />} />
 
         {/* MyPage */}
         <Route path="/my" element={<MyPage />} />
