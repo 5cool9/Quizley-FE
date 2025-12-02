@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "@/component/header";
 import AnswerQInput from "@/component/answerQInput";
@@ -120,7 +120,7 @@ const CreateQPage = () => {
       });
 
       console.log("작성 완료, quizId:", quizId);
-      navigate("/community", { replace: true });
+      navigate(`/community/user/${quizId}`, { replace: true });
     } catch (e: any) {
       console.error(e);
       if (e.status === 401 || (e.message ?? "").includes("로그인")) {
@@ -169,9 +169,8 @@ const CreateQPage = () => {
               draggable={false}
             />
             <span
-              className={`text-[16px] font-semibold ${
-                anonymous ? "text-primary-700" : "text-neutral-400"
-              }`}
+              className={`text-[16px] font-semibold ${anonymous ? "text-primary-700" : "text-neutral-400"
+                }`}
             >
               익명
             </span>

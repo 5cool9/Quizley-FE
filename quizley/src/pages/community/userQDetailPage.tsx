@@ -154,7 +154,7 @@ const UserQDetailPage = () => {
 
             if (e.status === 401 || (e.message ?? "").includes("로그인")) {
                 alert("로그인이 필요합니다. 다시 로그인해주세요.");
-                navigate("/login");
+                navigate("/login", { replace: true });
                 return;
             }
 
@@ -732,6 +732,7 @@ const UserQDetailPage = () => {
                         await blockUser(blockTargetUserId);
                         closePostModal();
                         showToast("사용자가 차단되었습니다.");
+                        navigate(-1);
                     } catch (e: any) {
                         console.error("사용자 차단 실패:", e);
 

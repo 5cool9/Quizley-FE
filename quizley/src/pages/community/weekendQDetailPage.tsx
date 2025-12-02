@@ -471,13 +471,11 @@ const WeekendQDetailPage = () => {
 
           try {
             await blockUser(userId);
-
-            // UI에서 해당 유저의 모든 댓글 제거
-            setCommentItems((prev) =>
-              prev.filter((c) => (c as any).userId !== userId)
-            );
-
             showToast("사용자가 차단되었습니다.");
+            closeCommentModal();
+
+            //차단 후 뒤로 가기
+            navigate(-1);
           } catch (e: any) {
             console.error("사용자 차단 실패:", e);
 
