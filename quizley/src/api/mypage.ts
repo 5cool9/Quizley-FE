@@ -23,7 +23,10 @@ async function doFetch(
   });
 }
 
-async function authRequest(path: string, options: RequestInit = {}): Promise<any> {
+async function authRequest(
+  path: string,
+  options: RequestInit = {}
+): Promise<any> {
   let accessToken = getAccessToken();
   let res = await doFetch(path, options, accessToken);
 
@@ -62,7 +65,6 @@ export type MyProfile = {
   profileImageUrl?: string | null;
 };
 
-
 // 내 프로필 조회
 export async function getMyProfile(): Promise<MyProfile> {
   const json = await authRequest("/api/profile/me", { method: "GET" });
@@ -93,9 +95,37 @@ export async function getMyLikedPosts<T = any>(): Promise<T[]> {
 
 // 내가 작성한 댓글 목록
 export async function getMyComments<T = any>(): Promise<T[]> {
-  const json = await authRequest("/api/profile/me/comments", { method: "GET" });
-  const data = (json as any).data ?? json;
-  return data as T[];
+  const json = await authRequest("/api/profile/me/comments", {
+    method: "GET",
+  });
+
+  const raw = (json as any).data ?? json;
+  console.log("내 댓글 raw 응답:", raw);
+
+  // 배열 아니면 빈 배열
+  if (!Array.isArray(raw)) {
+    return [] as T[];
+  }
+
+  // content 가 비어 있는(삭제된) 댓글은 목록에서 제외
+  const filtered = (raw as any[]).filter((item) => {
+    const text = item.commentText ?? item.content;
+    return text && String(text).trim().length > 0;
+  });
+
+  const mapped = filtered.map((item) => ({
+    commentId: item.commentId,
+    quizId: item.quizId,
+    quizAuthor: item.quizAuthor ?? "익명",
+    quizKind: item.quizKind ?? "질문",
+    quizTitle: item.quizTitle ?? "",
+    commentText: item.commentText ?? item.content, 
+    dateText: item.dateText ?? item.createdAt,
+    likeCount: item.likeCount ?? 0,
+    liked: item.liked ?? false,
+  }));
+
+  return mapped as unknown as T[];
 }
 
 // 프로필 수정 (닉네임 + 프로필 이미지)
