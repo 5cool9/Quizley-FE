@@ -18,6 +18,7 @@ export type CommentItem = {
   likeCount: number;
   liked?: boolean;       // 좋아요 여부
   myComments?: boolean;  // 내 댓글인지 여부
+  useId?: number;
 };
 
 type Props = {

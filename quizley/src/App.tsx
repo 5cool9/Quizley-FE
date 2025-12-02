@@ -21,6 +21,7 @@ import TodayInsightPage from "./pages/todayInsightPage";
 import EditSummaryPage from "./pages/editSummaryPage";
 import NotificationPage from "./pages/notificationPage";
 import ReportTodayInsightPage from "./pages/RecordTodayInsightPage";
+import NotFoundPage from "./pages/notFound";
 // LevelUp Context
 import { useLevel } from "./context/LevelCotext";
 import LevelUpPop from "./component/levelupPop";
@@ -49,7 +50,7 @@ export default function App() {
         {/* 알림 */}
         <Route path="/noti" element={<NotificationPage />} />
 
-        {/* Community (첫 번째 코드 기준 라우트) */}
+        {/* Community */}
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/today/:id" element={<TodayQDetailPage />} />
         <Route path="community/weekend/:id" element={<WeekendQDetailPage />} />
@@ -69,6 +70,8 @@ export default function App() {
         <Route path="/post-list" element={<MyPostListPage />} />
         <Route path="/comment-list" element={<MyCommentPage />} />
         <Route path="/like-list" element={<MyLikePage />} />
+
+        <Route path = "*" element={<NotFoundPage/>}/>
       </Routes>
     </>
   );
