@@ -10,6 +10,7 @@ import BellIcon from "../assets/icon/icon_bell.svg";
 import CompleteImg from "../assets/img/completeIMG.svg";
 import { getTodayQuiz, QuizData } from "../api/quiz";
 import { createChatRoom } from "../api/chat";
+import AlertPop from "../component/alertPop";
 
 export default function WeekdayHomePage() {
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ export default function WeekdayHomePage() {
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
   const [answer, setAnswer] = useState("");
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   const categoryMap: Record<string, string> = {
     mystery: "미스터리",
@@ -117,7 +120,8 @@ useEffect(() => {
 
     } catch (error: any) {
       console.error("채팅방 생성 실패:", error);
-      alert(error.message || "채팅방 생성 실패");
+      setAlertMessage(error.message || "채팅방 생성 실패");
+      setAlertOpen(true);
     }
   };
 
@@ -209,6 +213,11 @@ useEffect(() => {
           <TabBar active="home" />
         </div>
       </div>
+      <AlertPop
+        open={alertOpen}
+        title={alertMessage}
+        onConfirm={() => setAlertOpen(false)}
+      />
     </div>
   );
 }

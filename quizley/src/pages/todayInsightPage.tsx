@@ -9,7 +9,8 @@ import ShareCommunityPop from "../component/shareCommunityPop";
 import { getChatSummary } from "../api/chatSummary";
 import { completeChatComment } from "../api/chat";
 import { shareTodayInsightComment } from "../api/communityApi";
-
+import { useLevel } from "../context/LevelCotext";
+import AlertPop from "../component/alertPop";
 
 export default function TodayInsightPage() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function TodayInsightPage() {
   const [showSharePopup, setShowSharePopup] = useState(false);
 
   const chatId = state?.chatId;
+  const [quizId, setQuizId] = useState<number | null>(null);
 
   const categoryNames: Record<string, string> = {
     mystery: "🕵🏻‍♂️ 미스터리",
@@ -48,7 +50,11 @@ export default function TodayInsightPage() {
     { commentId: number; comment: string }[]
   >([]);
 
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+
   const isCompleted = category ? completedCategories[category] : false;
+  const { updateLevel } = useLevel();
 
   // 요약 수정 후 뒤로 돌아올 때 반영
   useEffect(() => {
@@ -70,14 +76,15 @@ export default function TodayInsightPage() {
         setSummary(first.summary);
         setFeedback(first.feedback);
         setTopComments(first.topCommentDtoList || []);
+        setQuizId(first.quizId);
       } else if (res) {
         setSummary(res.summary);
         setFeedback(res.feedback);
         setTopComments(res.topCommentDtoList || []);
+        setQuizId(res.quizId);
       }
     } catch (err) {
       console.error("요약 불러오기 실패:", err);
-      // 혹시 UI에서 알림 띄우고 싶으면 여기서 처리
     }
   };
 
@@ -169,7 +176,7 @@ export default function TodayInsightPage() {
           {/* 유저의 생각 TOP3 */}
           <div className="mt-5 px-5 flex justify-between items-center">
             <p className="typ-b6 text-neutral-650">다른 유저의 생각 TOP3</p>
-            <p className="typ-b4 text-neutral-400" onClick={() => navigate(`/today/${id}`)}>
+            <p className="typ-b4 text-neutral-400" onClick={() => navigate(`/community/today/${quizId}`)}>
               더보기
             </p>
           </div>
@@ -211,12 +218,18 @@ export default function TodayInsightPage() {
           onConfirm={async () => {
             if (!chatId) return;
             try {
-              await completeChatComment(chatId); // API 호출
+              const res = await completeChatComment(chatId); 
+            
               setCompletedCategories(prev => ({ ...prev, [category!]: true })); // 카테고리별 완료 처리
               setShowPopup(false);
+
+              if (res.levelUp) {
+                updateLevel(res.levelUp.currentLevel); // LevelContext 업데이트 -> 팝업 자동 등장
+              }
             } catch (err) {
               console.error("답변 등록 실패:", err);
-              alert("답변 등록에 실패했습니다. 다시 시도해주세요.");
+              setAlertMessage("답변 등록에 실패했습니다. 다시 시도해주세요.");
+              setAlertOpen(true);
             }
           }}
         />
@@ -232,15 +245,22 @@ export default function TodayInsightPage() {
               commentAnonymous: true, // 공개 여부
               writerAnonymous: anonymous, // 팝업에서 체크한 값
               });
-              alert("커뮤니티에 공유되었습니다!");
+              setAlertMessage("커뮤니티에 공유되었습니다!");
+              setAlertOpen(true);
               setShowSharePopup(false);
             } catch (err) {
               console.error(err);
-              alert("공유에 실패했습니다. 다시 시도해주세요.");
+              setAlertMessage("공유에 실패했습니다. 다시 시도해주세요.");
+              setAlertOpen(true);
             }
             }}
             />
       </div>
+      <AlertPop
+        open={alertOpen}
+        title={alertMessage}
+        onConfirm={() => setAlertOpen(false)}
+      />
     </div>
   );
 }

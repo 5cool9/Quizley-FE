@@ -52,7 +52,7 @@ export default function App() {
 
         {/* Community */}
         <Route path="community" element={<CommunityPage />} />
-        <Route path="community/today/:id" element={<TodayQDetailPage />} />
+        <Route path="/community/today/:id" element={<TodayQDetailPage />} />
         <Route path="community/weekend/:id" element={<WeekendQDetailPage />} />
         <Route path="community/user/:id" element={<UserQDetailPage />} />
         <Route path="community/search" element={<SearchListPage />} />
