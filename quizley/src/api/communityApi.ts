@@ -295,7 +295,7 @@ export async function createCommunityQuiz(params: {
       quizId: number;
     };
     levelUp?: unknown;
-  }>(`/api/community/quiz`, {
+  }>("/api/community/quiz", {
     method: "POST",
     body: JSON.stringify({
       content,
@@ -304,10 +304,13 @@ export async function createCommunityQuiz(params: {
     }),
   });
 
-  // prod / dev 둘 다 커버
-  const status = res.data?.status ?? res.status;
-  const message = res.data?.message ?? res.message;
-  const quizId = res.data?.quizId ?? res.quizId;
+  // 1) prod: { data: { status, message, quizId }, levelUp }
+  // 2) dev:  { status, message, quizId }
+  const body = (res as any).data ?? res;
+
+  const status: number | undefined = body.status;
+  const quizId: number | undefined = body.quizId;
+  const message: string | undefined = body.message;
 
   if (status !== 201 || typeof quizId !== "number") {
     throw new Error(
@@ -393,30 +396,37 @@ export async function createQuizComment(params: {
   const { quizId, content, isAnonymous } = params;
 
   const res = await apiRequest<{
+    status?: number;
+    message?: string;
+    commentId?: number;
     data?: {
       status: number;
       message: string;
       commentId: number;
     };
-    status?: number;
-    message?: string;
+    levelUp?: unknown;
   }>(`/api/community/quiz/${quizId}/comment`, {
     method: "POST",
     body: JSON.stringify({ content, isAnonymous }),
   });
 
-  // 백엔드 응답 wrapper 공식 대응
-const body = (res.data ?? res) as {
-  status: number;
-  message: string;
-  commentId: number;
-};
-  if (body.status !== 201 || typeof body.commentId !== "number") {
-    throw new Error(body.message ?? "댓글 작성 실패");
+  // 1) prod: { data: { status, message, commentId }, levelUp }
+  // 2) dev:  { status, message, commentId }
+  const body = (res as any).data ?? res;
+
+  const status: number | undefined = body.status;
+  const commentId: number | undefined = body.commentId;
+  const message: string | undefined = body.message;
+
+  if (status !== 201 || typeof commentId !== "number") {
+    throw new Error(
+      message ?? `댓글 작성 실패 (status: ${status ?? "unknown"})`
+    );
   }
 
-  return body.commentId;
+  return commentId;
 }
+
 
 
 // 게시글 신고
