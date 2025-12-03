@@ -11,15 +11,6 @@ import {
   type CategoryCode,
 } from "@/api/communityApi";
 
-const CATEGORY_ID_TO_CODE: Record<string, CategoryCode> = {
-  science: "과학",
-  literature: "문학",
-  history: "역사",
-  art: "예술",
-  mystery: "미스터리",
-  psychology: "심리",
-};
-
 const SearchListPage = () => {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -34,64 +25,59 @@ const SearchListPage = () => {
 
   // 검색 API 호출
   useEffect(() => {
-    const load = async () => {
-      if (!searchQuery) {
-        setSearchResults([]);
-        return;
+  const load = async () => {
+    if (!searchQuery) {
+      setSearchResults([]);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await fetchCommunitySearch({
+        keyword: searchQuery,
+        sortBy: sortType,
+      });
+
+      let quizzes = data.quizzes;
+
+      if (categoryParam) {
+        quizzes = quizzes.filter((q) => q.category === categoryParam);
       }
 
-      setLoading(true);
-      setError(null);
+      const posts: PostUser[] = quizzes.map((q) => ({
+        id: q.quizId,
+        kind: "user",
+        nickname: q.nickname ?? "익명",
+        title: q.content,
+        timeText: q.createdAt
+          ? q.createdAt
+          : q.publishedDate
+          ? q.publishedDate.replace(/-/g, ".")
+          : "",
+        likeCount: q.likeCount,
+        commentCount: q.commentCount,
+        liked: q.isLiked ?? false,
+      }));
 
-      try {
-        const data = await fetchCommunitySearch({
-          keyword: searchQuery,
-          sortBy: sortType,
-        });
+      setSearchResults(posts);
+    } catch (e: any) {
+      console.error("검색 실패:", e);
+      setError(e.message ?? "검색 중 오류가 발생했습니다.");
 
-        let quizzes = data.quizzes;
-
-        //카테고리 필터링
-        if (categoryParam) {
-          const categoryKo = CATEGORY_ID_TO_CODE[categoryParam] ?? null;
-
-          if (categoryKo) {
-            quizzes = quizzes.filter((q) => q.category === categoryKo);
-          }
-        }
-
-
-        const posts: PostUser[] = quizzes.map((q) => ({
-          id: q.quizId,
-          kind: "user",
-          nickname: q.nickname ?? "익명",
-          title: q.content,
-          timeText: q.createdAt
-            ? q.createdAt
-            : q.publishedDate
-              ? q.publishedDate.replace(/-/g, ".")
-              : "",
-          likeCount: q.likeCount,
-          commentCount: q.commentCount,
-          liked: q.isLiked ?? false,
-        }));
-
-        setSearchResults(posts);
-      } catch (e: any) {
-        console.error("검색 실패:", e);
-        setError(e.message ?? "검색 중 오류가 발생했습니다.");
-
-        if (e.status === 401 || (e.message ?? "").includes("로그인")) {
-          alert("로그인이 필요합니다. 다시 로그인해주세요.");
-          navigate("/login");
-        }
-      } finally {
-        setLoading(false);
+      if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+        alert("로그인이 필요합니다. 다시 로그인해주세요.");
+        navigate("/login");
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    load();
-  }, [searchQuery, sortType, categoryParam, navigate]);
+  load();
+}, [searchQuery, sortType, categoryParam, navigate]);
+
 
 
   // 검색어 입력 후 엔터 → URL q 파라미터 갱신
