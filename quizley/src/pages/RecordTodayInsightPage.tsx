@@ -129,7 +129,7 @@ export default function ReportTodayInsightPage() {
     });
   };
 
-  // 🔹 다른 유저의 생각 더보기 → 해당 커뮤니티 게시글(댓글)로 이동
+  // 다른 유저의 생각 더보기 → 오늘의 퀴즈 커뮤니티 상세로 이동
   const handleGoComments = () => {
     const quizId = record?.quizId;
     if (!quizId) {
@@ -137,7 +137,7 @@ export default function ReportTodayInsightPage() {
       return;
     }
 
-    navigate(`/community/user/${quizId}`, {
+    navigate(`/community/today/${quizId}`, {
       state: {
         from: "recordTodayInsight",
         focus: "comments",
