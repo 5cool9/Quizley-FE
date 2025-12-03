@@ -59,13 +59,11 @@ export async function apiRequest<T = any>(path: string, options: RequestInit = {
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-  throw {
-    status: res.status,
-    message: data?.message ?? "API 요청 실패",
-    code: data?.code,
-  };
-}
-
+    const error: any = new Error(data?.message || "API 요청 실패");
+    error.status = res.status;
+    error.code = data?.code;
+    throw error;
+  }
 
   return data as T;
 }
