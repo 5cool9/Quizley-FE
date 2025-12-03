@@ -165,17 +165,20 @@ const CommunityPage = () => {
   const { dragBind: catDrag } = useDragScroll();
   const { ref: catDragRef, ...restCatDragBind } = catDrag;
 
-  // 처음 들어올 때 localStorage에서 마지막 카테고리 복원
-  useEffect(() => {
-    try {
-      const savedId = localStorage.getItem(CATEGORY_STORAGE_KEY);
-      if (savedId) {
-        setActiveCategoryId(savedId);
-      }
-    } catch (e) {
-      console.error("카테고리 localStorage 읽기 실패:", e);
+ useEffect(() => {
+  try {
+    const saved = localStorage.getItem(CATEGORY_STORAGE_KEY);
+    if (saved) {
+      setActiveCategoryId(saved);
+    } else {
+      setActiveCategoryId("mystery"); // 기본 카테고리
     }
-  }, []);
+  } catch (e) {
+    console.error("카테고리 복원 실패:", e);
+    setActiveCategoryId("science");
+  }
+}, []);
+
 
   // ---------------- 최초 마운트 시 말풍선 localStorage 확인 ----------------
   useEffect(() => {
