@@ -14,7 +14,7 @@ export async function apiRequest<T = any>(path: string, options: RequestInit = {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  // 요청
+  // 1차 요청
   let res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers,
@@ -29,7 +29,7 @@ export async function apiRequest<T = any>(path: string, options: RequestInit = {
       throw new Error("로그인이 필요합니다.");
     }
 
-    // refreshToken 재발급
+    // 🔥 refreshToken 재발급
     const refreshRes = await fetch(`${BASE_URL}/api/users/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -59,11 +59,13 @@ export async function apiRequest<T = any>(path: string, options: RequestInit = {
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    const error: any = new Error(data?.message || "API 요청 실패");
-    error.status = res.status;
-    error.code = data?.code;
-    throw error;
-  }
+  throw {
+    status: res.status,
+    message: data?.message ?? "API 요청 실패",
+    code: data?.code,
+  };
+}
+
 
   return data as T;
 }
