@@ -63,7 +63,7 @@ useEffect(() => {
 
         // 질문 내용
         setContent(q.content);
-  const isAnon = q.nickname === "익명";
+        const isAnon = q.nickname === "익명";
         setAnonymous(isAnon);
 
         console.log("수정모드 - nickname:", q.nickname);
@@ -140,7 +140,7 @@ useEffect(() => {
 
  return (
     <div className="relative bg-elevated w-full max-w-[393px] mx-auto min-h-screen">
-      <div className="flex flex-col h-full overflow-y-scroll scrollbar-hide pb-[100px]">
+      <div className="flex flex-col h-full overflow-y-scroll scrollbar-hide pb-[100px] py-5">
 
         <Header
           title={isEdit ? "게시물 수정" : "게시물 작성"}
@@ -151,7 +151,7 @@ useEffect(() => {
         {/* 내용 입력 */}
         <div className="mt-6 px-5">
           <AnswerQInput
-            className="w-full h-[150px] mb-2"
+            className="w-full h-[190px] mb-2"
             placeholder="질문을 입력해주세요."
             value={content}
             onChange={(v) => setContent(v)}
@@ -177,6 +177,7 @@ useEffect(() => {
           <h2 className="typ-h5 mb-1">카테고리 선택</h2>
 
           <Category
+            className="flex-wrap max-h-[80px] w-full"
             activeId={selectedCategoryId ?? ""}
             onChange={(id) => {
               console.log("카테고리 변경:", id);
