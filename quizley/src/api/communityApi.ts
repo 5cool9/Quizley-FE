@@ -72,7 +72,9 @@ export type QuizDetailQuizApi = {
   canComment: boolean;
   isMine: boolean;
   userId?: number;
-};
+  category: CategoryCode;
+  isAnonymous: boolean;
+}
 
 export type QuizDetailCommentApi = {
   commentId: number;
