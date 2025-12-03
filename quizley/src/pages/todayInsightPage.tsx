@@ -242,6 +242,7 @@ export default function TodayInsightPage() {
               });
               alert("커뮤니티에 공유되었습니다!");
               setShowSharePopup(false);
+              navigate("/home");
             } catch (err) {
               console.error(err);
               alert("공유에 실패했습니다. 다시 시도해주세요.");
