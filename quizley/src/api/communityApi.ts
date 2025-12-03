@@ -279,6 +279,7 @@ export async function fetchCommunitySearch(params: {
 // 4) 질문 생성
 // -------------------------------------------------------------
 // 4) 질문 생성
+// -------------------------------------------------------------
 export async function createCommunityQuiz(params: {
   content: string;
   category: CategoryCode;
@@ -295,27 +296,41 @@ export async function createCommunityQuiz(params: {
     }),
   });
 
-  const anyRes: any = res;
+  // prod: { data: { status, message, quizId }, levelUp }
+  // dev:  { status, message, quizId }
+  const body =
+    (res as any)?.data?.data || // 만약 data.data 로 오는 최악의 케이스 대비
+    (res as any)?.data ||
+    (res as any);
 
-  const quizId =
-    anyRes.quizId ??
-    anyRes.data?.quizId ??
-    anyRes.data?.data?.quizId;
+  const status: number | undefined = body.status;
+  const quizId: number | undefined = body.quizId;
+  const message: string | undefined = body.message;
+
+  if (status !== 201) {
+    console.warn(
+      "[createCommunityQuiz] status가 201이 아님:",
+      status,
+      "message:",
+      message,
+      "raw:",
+      res
+    );
+    // 여기서도 굳이 throw 안 함
+  }
 
   if (typeof quizId !== "number") {
-    console.error(res);
-
-    const message =
-      anyRes.message ??
-      anyRes.data?.message ??
-      anyRes.data?.data?.message ??
-      "게시글 작성 실패 (quizId 없음)";
-
-    throw new Error(message);
+    console.error(
+      "[createCommunityQuiz] quizId 파싱 실패. raw 응답:",
+      res
+    );
+    // 앱이 죽지 않도록 0 반환 (호출부에서 0 체크해서 처리 가능)
+    return 0;
   }
 
   return quizId;
 }
+
 
 
 
@@ -393,37 +408,49 @@ export async function createQuizComment(params: {
 }): Promise<number> {
   const { quizId, content, isAnonymous } = params;
 
-  const res = await apiRequest<{
-    status?: number;
-    message?: string;
-    commentId?: number;
-    data?: {
-      status: number;
-      message: string;
-      commentId: number;
-    };
-    levelUp?: unknown;
-  }>(`/api/community/quiz/${quizId}/comment`, {
-    method: "POST",
-    body: JSON.stringify({ content, isAnonymous }),
-  });
+  const res = await apiRequest<any>(
+    `/api/community/quiz/${quizId}/comment`,
+    {
+      method: "POST",
+      body: JSON.stringify({ content, isAnonymous }),
+    }
+  );
 
-  // 1) prod: { data: { status, message, commentId }, levelUp }
-  // 2) dev:  { status, message, commentId }
-  const body = (res as any).data ?? res;
+  // prod: { data: { status, message, commentId }, levelUp }
+  // dev:  { status, message, commentId }
+  const body =
+    (res as any)?.data?.data || // 혹시 모를 중첩 대응
+    (res as any)?.data ||
+    (res as any);
 
   const status: number | undefined = body.status;
   const commentId: number | undefined = body.commentId;
   const message: string | undefined = body.message;
 
-  if (status !== 201 || typeof commentId !== "number") {
-    throw new Error(
-      message ?? `댓글 작성 실패 (status: ${status ?? "unknown"})`
+  if (status !== 201) {
+    console.warn(
+      "[createQuizComment] status가 201이 아님:",
+      status,
+      "message:",
+      message,
+      "raw:",
+      res
     );
+    // throw 안 함
+  }
+
+  if (typeof commentId !== "number") {
+    console.error(
+      "[createQuizComment] commentId 파싱 실패. raw 응답:",
+      res
+    );
+    // 실패 시 0으로 반환
+    return 0;
   }
 
   return commentId;
 }
+
 
 
 
