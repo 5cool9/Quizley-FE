@@ -285,7 +285,7 @@ export async function createCommunityQuiz(params: {
 }): Promise<number> {
   const { content, category, isAnonymous = false } = params;
 
-  const res = await apiRequest(`/api/community/quiz`, {
+  const res = await apiRequest<any>(`/api/community/quiz`, {
     method: "POST",
     body: JSON.stringify({
       content,
@@ -294,17 +294,24 @@ export async function createCommunityQuiz(params: {
     }),
   });
 
-  const body = res.data ?? res;
+  // 가능한 모든 형태를 다 커버
+  const status =
+    res?.status ?? res?.data?.status ?? res?.data?.data?.status;
+  const message =
+    res?.message ?? res?.data?.message ?? res?.data?.data?.message;
+  const quizId =
+    res?.quizId ??
+    res?.data?.quizId ??
+    res?.data?.data?.quizId;
 
-  if (body.status !== 201) {
-    throw new Error(body.message ?? `게시글 작성 실패 (status: ${body.status})`);
+  if (status !== 201 || typeof quizId !== "number") {
+    throw new Error(
+      message ??
+        `게시글 작성 실패 (status: ${status}, quizId: ${quizId})`
+    );
   }
 
-  if (typeof body.quizId !== "number") {
-    throw new Error("게시글 작성 실패 (quizId 없음)");
-  }
-
-  return body.quizId;
+  return quizId;
 }
 
 
