@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import Header from "../component/header";
 import NotificationItem from "../component/NotificationItem";
 import { useNavigate } from "react-router-dom";
-import { getNotifications } from "../api/notifications"; 
-import type { Notification } from "../api/notifications";
+import { getNotifications, Notification } from "../api/notifications"; 
 
 export default function NotificationPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -26,7 +25,7 @@ export default function NotificationPage() {
 
         const readList = getReadList();
 
-        // ✅ 백엔드 데이터 + 로컬 읽음 상태 결합
+        // 백엔드 데이터 + 로컬 읽음 상태
         const merged = data.map((n) => ({
           ...n,
           isRead: n.isRead || readList.includes(n.notificationId),
@@ -41,19 +40,17 @@ export default function NotificationPage() {
     fetchData();
   }, []);
 
-  const handleClick = (id: number) => {
+  const handleClick = async (id: number) => {
     // 화면에서 읽음 표시
     setNotifications((prev) =>
-      prev.map((n) =>
-        n.notificationId === id ? { ...n, isRead: true } : n
-      )
+      prev.map((n) => (n.notificationId === id ? { ...n, isRead: true } : n))
     );
 
-    // 로컬에 읽음 저장
     const readList = getReadList();
     if (!readList.includes(id)) {
       saveReadList([...readList, id]);
     }
+    
   };
 
   return (
