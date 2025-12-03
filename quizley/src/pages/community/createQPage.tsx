@@ -44,7 +44,7 @@ const CreateQPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
 
-useEffect(() => {
+  useEffect(() => {
     if (!isEdit || !id) return;
 
     const quizId = Number(id);
@@ -69,7 +69,7 @@ useEffect(() => {
         console.log("수정모드 - nickname:", q.nickname);
         console.log("수정모드 - 익명 여부:", isAnon);
 
-         const savedCatId = localStorage.getItem(CATEGORY_STORAGE_KEY);
+        const savedCatId = localStorage.getItem(CATEGORY_STORAGE_KEY);
         console.log("수정모드 - localStorage 카테고리 ID:", savedCatId);
 
         if (savedCatId) {
@@ -92,7 +92,7 @@ useEffect(() => {
 
   const isValid = content.trim().length > 0 && selectedCategoryId !== null;
 
- const handleSubmit = async () => {
+  const handleSubmit = async () => {
     if (!isValid || !selectedCategoryId) return;
 
     const category: CategoryCode = CATEGORY_ID_TO_CODE[selectedCategoryId];
@@ -119,9 +119,9 @@ useEffect(() => {
         category,
         isAnonymous: anonymous,
       });
-      alert("게시물이 등록되었습니다."); 
+      alert("게시물이 등록되었습니다.");
 
-      navigate(`/community/user/${quizId}`);
+      navigate(`/community/user/${quizId}`, { replace: true });
     } catch (e: any) {
       console.error(e);
       alert(e.message ?? "오류가 발생했습니다.");
@@ -130,7 +130,7 @@ useEffect(() => {
     }
   };
 
- if (isEdit && initialLoading) {
+  if (isEdit && initialLoading) {
     return (
       <div className="relative w-full max-w-[393px] mx-auto min-h-screen flex items-center justify-center">
         <span className="text-neutral-500">게시글 불러오는 중...</span>
@@ -139,7 +139,7 @@ useEffect(() => {
   }
 
 
- return (
+  return (
     <div className="relative bg-elevated w-full max-w-[393px] mx-auto min-h-screen">
       <div className="flex flex-col h-full overflow-y-scroll scrollbar-hide pb-[100px] py-5">
 
