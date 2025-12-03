@@ -285,7 +285,17 @@ export async function createCommunityQuiz(params: {
 }): Promise<number> {
   const { content, category, isAnonymous = false } = params;
 
-  const res = await apiRequest<any>("/api/community/quiz", {
+  const res = await apiRequest<{
+    status?: number;
+    message?: string;
+    quizId?: number;
+    data?: {
+      status: number;
+      message: string;
+      quizId: number;
+    };
+    levelUp?: unknown;
+  }>("/api/community/quiz", {
     method: "POST",
     body: JSON.stringify({
       content,
@@ -294,29 +304,22 @@ export async function createCommunityQuiz(params: {
     }),
   });
 
+  const body =
+    (res as any)?.data?.data ?? (res as any)?.data ?? (res as any);
 
-  const raw = (res?.data && res.data.data) || res.data || res;
+  const status: number | undefined = body.status;
+  const quizId: number | undefined = body.quizId;
+  const message: string | undefined = body.message;
 
-  const status: number | undefined = raw?.status;
-  const quizId: number | undefined = raw?.quizId;
-  const message: string | undefined = raw?.message;
-
-  if (typeof quizId === "number") {
-    console.log("createCommunityQuiz success:", {
-      status,
-      quizId,
-      message,
-      raw,
-    });
-    return quizId;
+  if (status !== 201 || typeof quizId !== "number") {
+    throw new Error(
+      message ?? `게시글 작성 실패 (status: ${status ?? "unknown"})`
+    );
   }
 
-  // quizId가 없을 때만 진짜 에러로 처리
-  console.error("createCommunityQuiz unexpected response:", res);
-  throw new Error(
-    message ?? `게시글 작성 실패 (status: ${status ?? "unknown"})`
-  );
+  return quizId;
 }
+
 
 // 게시글 수정
 export async function updateCommunityQuiz(params: {
