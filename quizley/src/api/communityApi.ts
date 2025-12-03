@@ -285,11 +285,7 @@ export async function createCommunityQuiz(params: {
 }): Promise<number> {
   const { content, category, isAnonymous = false } = params;
 
-  const res = await apiRequest<{
-    status: number;
-    message: string;
-    quizId: number;
-  }>(`/api/community/quiz`, {
+  const res = await apiRequest(`/api/community/quiz`, {
     method: "POST",
     body: JSON.stringify({
       content,
@@ -298,16 +294,19 @@ export async function createCommunityQuiz(params: {
     }),
   });
 
-  if (res.status !== 201) {
-    const error: any = new Error(
-      res.message ?? `게시글 작성 실패 (status: ${res.status})`
-    );
-    error.status = res.status;
-    throw error;
+  const body = res.data ?? res;
+
+  if (body.status !== 201) {
+    throw new Error(body.message ?? `게시글 작성 실패 (status: ${body.status})`);
   }
 
-  return res.quizId;
+  if (typeof body.quizId !== "number") {
+    throw new Error("게시글 작성 실패 (quizId 없음)");
+  }
+
+  return body.quizId;
 }
+
 
 // 게시글 수정
 export async function updateCommunityQuiz(params: {

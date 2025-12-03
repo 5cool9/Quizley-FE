@@ -119,6 +119,7 @@ useEffect(() => {
         category,
         isAnonymous: anonymous,
       });
+      alert("게시물이 등록되었습니다."); 
 
       navigate(`/community/user/${quizId}`);
     } catch (e: any) {
