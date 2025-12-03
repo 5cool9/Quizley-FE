@@ -4,6 +4,7 @@ import LoginInput from "../component/loginInput";
 import BtnLong from "../component/btnLong";
 import { useNavigate } from "react-router-dom";
 import { loginApi, saveTokens } from "../api/auth";
+import AlertPop from "../component/alertPop";
 
 type LoginPageProps = {
   onLogin?: () => void;
@@ -12,11 +13,14 @@ type LoginPageProps = {
 
 export default function LoginPage({ onLogin, onSignup }: LoginPageProps) {
   const nav = useNavigate();
-  const goSignup = onSignup ?? (() => nav("/join")); // ← 기본 이동 정의
+  const goSignup = onSignup ?? (() => nav("/join"));
 
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [afterLoginRedirect, setAfterLoginRedirect] = useState(false); // 추가
 
   const canSubmit = userId.trim().length > 0 && password.trim().length > 0;
 
@@ -27,10 +31,14 @@ export default function LoginPage({ onLogin, onSignup }: LoginPageProps) {
       setLoading(true);
       const data = await loginApi({ userId, password });
 
+      setAlertMessage("로그인에 성공했습니다!");
+      setAfterLoginRedirect(true); // ✅ 성공 후 홈으로 이동
+      setAlertOpen(true);
       onLogin?.();
-      nav("/home");
     } catch (error: any) {
-      alert(error?.message ?? "로그인에 실패했습니다.");
+      setAlertMessage(error?.message ?? "로그인에 실패했습니다.");
+      setAfterLoginRedirect(false); // 실패 시 이동 없음
+      setAlertOpen(true);
     } finally {
       setLoading(false);
     }
@@ -81,7 +89,20 @@ export default function LoginPage({ onLogin, onSignup }: LoginPageProps) {
         >
           회원가입
         </button>
+        
       </div>
+
+      {/* AlertPop */}
+      <AlertPop
+        open={alertOpen}
+        title={alertMessage}
+        onConfirm={() => {
+          setAlertOpen(false);
+          if (afterLoginRedirect) {
+            nav("/home"); // 확인 후 홈 이동
+          }
+        }}
+      />
     </div>
   );
 }

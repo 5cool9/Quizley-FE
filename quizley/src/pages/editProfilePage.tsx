@@ -7,6 +7,7 @@ import LoginInput from "../component/loginInput";
 import BtnLong from "../component/btnLong";
 import ProfileImg from "../assets/img/profileIMG.svg";
 import { getMyProfile, updateMyProfile } from "../api/mypage";
+import AlertPop from "../component/alertPop";
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
@@ -20,6 +21,10 @@ export default function EditProfilePage() {
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [afterSubmitRedirect, setAfterSubmitRedirect] = useState(false);
 
   // 닉네임/아이디/프로필 이미지 불러오기
   useEffect(() => {
@@ -66,11 +71,14 @@ export default function EditProfilePage() {
       }
 
       await updateMyProfile(formData);
-      alert("프로필이 수정되었습니다.");
-      navigate(-1);
+      setAlertMessage("프로필이 수정되었습니다.");
+      setAfterSubmitRedirect(true);
+      setAlertOpen(true); 
     } catch (error: any) {
       console.error("프로필 수정 실패:", error);
-      alert(error?.message ?? "프로필 수정에 실패했습니다.");
+      setAlertMessage(error?.message ?? "프로필 수정에 실패했습니다.");
+      setAfterSubmitRedirect(false);
+      setAlertOpen(true); 
     }
   };
 
@@ -151,6 +159,16 @@ export default function EditProfilePage() {
           />
         </div>
       </div>
-    </div>
+    <AlertPop
+      open={alertOpen}
+      title={alertMessage}
+      onConfirm={() => {
+        setAlertOpen(false);
+        if (afterSubmitRedirect) {
+          navigate(-1); // 확인 후 화면 이동
+        }
+      }}
+    />
+  </div>
   );
 }

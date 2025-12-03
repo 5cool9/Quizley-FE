@@ -83,6 +83,10 @@ export function updateChatSummary(chatId: number, summary: string) {
 export interface CompleteCommentResponse {
   status: number;
   message: string;
+  levelUp?: {
+    currentLevel: number;
+    remainingPoint: number;
+  } | null;
 }
 
 export function completeChatComment(chatId: number) {

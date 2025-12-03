@@ -188,7 +188,7 @@ const formatToKoreanTime = (dateStr?: string) => {
         </div>
 
         {/* 입력창 */}
-        <div className="fixed inset-x-0 bottom-0 bg-white border-t border-neutral-200 px-5 pt-3 pb-6">
+        <div className="fixed inset-x-0 bottom-0 bg-white border-t border-neutral-200 mx-auto w-full max-w-[394px] px-5 pt-3 pb-6">
           <InputAnswer
             value={userInput}
             onChange={setUserInput}

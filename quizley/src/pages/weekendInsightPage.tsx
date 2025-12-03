@@ -5,6 +5,7 @@ import Header from "../component/header";
 import WeekendGameResult from "../component/weekendGameResult";
 import TabBar from "../component/tabbar";
 import TrashIcon from "../assets/icon/icon_trash.svg";
+import AlertPop from "../component/alertPop";
 import {
   getInsightRecord,
   deleteInsightRecord,
@@ -24,11 +25,15 @@ export default function WeekendInsightPage() {
   const [record, setRecord] = useState<InsightRecordItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  
 
   // 날짜 없으면 바로 뒤로
   useEffect(() => {
     if (!date) {
-      alert("날짜 정보가 없습니다. 다시 시도해 주세요.");
+      setAlertMessage("날짜 정보가 없습니다. 다시 시도해 주세요.");
+      setAlertOpen(true);
       navigate(-1);
     }
   }, [date, navigate]);
@@ -62,12 +67,14 @@ export default function WeekendInsightPage() {
 
     try {
       await deleteInsightRecord(date);
-      alert("기록이 삭제되었습니다.");
+      setAlertMessage("기록이 삭제되었습니다.");
+      setAlertOpen(true);
       setMenuOpen(false);
       navigate(-1);
     } catch (err: any) {
       console.error("인사이트 삭제 실패:", err);
-      alert(err?.message ?? "삭제에 실패했습니다. 다시 시도해 주세요.");
+      setAlertMessage(err?.message ?? "삭제에 실패했습니다. 다시 시도해 주세요.");
+      setAlertOpen(true);
     }
   };
 
@@ -196,6 +203,11 @@ export default function WeekendInsightPage() {
           <TabBar active="history" />
         </div>
       </div>
+      <AlertPop
+        open={alertOpen}
+        title={alertMessage}
+        onConfirm={() => setAlertOpen(false)}
+      />
     </div>
   );
 }

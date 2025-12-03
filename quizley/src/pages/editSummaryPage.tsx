@@ -6,7 +6,7 @@ import Header from "../component/header";
 import BtnLong from "../component/btnLong";
 import { updateChatSummary } from "../api/chat";
 import { postSameQuestionAnswer } from "../api/insightRecord";
-
+import AlertPop from "../component/alertPop";
 
 export default function EditSummaryPage() {
   const navigate = useNavigate();
@@ -16,6 +16,9 @@ export default function EditSummaryPage() {
   // 어디서 들어왔는지
   const from = state?.from as string | undefined; 
   const quizId = state?.quizId as number | undefined;
+
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   // 넘겨받은 요약 텍스트와 chatId
   const originalSummary = state?.summary || "";
@@ -32,7 +35,8 @@ export default function EditSummaryPage() {
   // 공통 제출 핸들러
   const handleSubmit = async () => {
     if (!summary.trim()) {
-      alert("내용을 입력해 주세요.");
+      setAlertMessage("내용을 입력해 주세요.");
+      setAlertOpen(true);
       return;
     }
 
@@ -40,7 +44,8 @@ export default function EditSummaryPage() {
       if (from === "reportTodayInsight") {
         // 같은 질문에 다시 답해보기 플로우
         if (!quizId) {
-          alert("퀴즈 정보를 찾을 수 없습니다.");
+          setAlertMessage("퀴즈 정보를 찾을 수 없습니다.");
+          setAlertOpen(true);
           return;
         }
 
@@ -50,7 +55,8 @@ export default function EditSummaryPage() {
       } else {
         // 기존 요약 수정 플로우
         if (!chatId) {
-          alert("수정할 채팅 정보를 찾을 수 없습니다.");
+          setAlertMessage("수정할 채팅 정보를 찾을 수 없습니다.");
+          setAlertOpen(true);
           return;
         }
 
@@ -61,7 +67,8 @@ export default function EditSummaryPage() {
       }
     } catch (err) {
       console.error("요청 처리 실패:", err);
-      alert("요청 처리 중 오류가 발생했습니다.");
+      setAlertMessage("요청 처리 중 오류가 발생했습니다.");
+      setAlertOpen(true);
     }
   };
 
@@ -98,6 +105,11 @@ export default function EditSummaryPage() {
           />
         </div>
       </div>
+      <AlertPop
+        open={alertOpen}
+        title={alertMessage}
+        onConfirm={() => setAlertOpen(false)}
+      />
     </div>
   );
 }

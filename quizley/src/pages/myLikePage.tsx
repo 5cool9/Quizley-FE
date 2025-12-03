@@ -6,10 +6,13 @@ import Header from "../component/header";
 import PostList, { type PostUser } from "../component/postList";
 import { getMyLikedPosts } from "../api/mypage";
 import { toggleQuizLike } from "../api/communityApi";
+import AlertPop from "../component/alertPop";
 
 export default function MyLikePage() {
   const navigate = useNavigate();
   const [items, setItems] = useState<PostUser[]>([]);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   // 좋아요 누른 게시물 목록 조회
   useEffect(() => {
@@ -48,7 +51,8 @@ export default function MyLikePage() {
       await toggleQuizLike(quizId);
     } catch (err: any) {
       console.error("좋아요 취소 실패:", err);
-      alert("좋아요 취소 중 오류가 발생했습니다. 다시 시도해 주세요.");
+      setAlertMessage("좋아요 취소 중 오류가 발생했습니다. 다시 시도해 주세요.");
+      setAlertOpen(true);
 
       // 3) 실패하면 목록 원상복구
       setItems(prevItems);
@@ -85,6 +89,11 @@ export default function MyLikePage() {
           />
         </main>
       </div>
+      <AlertPop
+            open={alertOpen}
+            title={alertMessage}
+            onConfirm={() => setAlertOpen(false)}
+      />
     </div>
   );
 }
