@@ -14,7 +14,7 @@ import {
 import DeleteInsightPop from "../component/deleteInsightPop";
 
 type LocationState = {
-  date?: string; // 기록 리스트/캘린더에서 넘겨주는 날짜 (YYYY-MM-DD)
+  date?: string; 
 };
 
 const categoryLabelMap: Record<string, string> = {
@@ -50,7 +50,7 @@ export default function ReportTodayInsightPage() {
 
   const targetDate = record?.date ?? initialDate ?? "";
 
-  // 날짜 포맷팅: "2025-01-05" → "2025. 01. 05. (월)"
+  // 날짜 포맷팅
   const formattedDate = useMemo(() => {
     if (!targetDate) return "";
     const d = new Date(targetDate);
@@ -66,15 +66,12 @@ export default function ReportTodayInsightPage() {
 
   // 상단 카테고리 라벨
   const categoryLabel = useMemo(() => {
-  const cat = record?.category;
-  if (!cat) return "카테고리";
+    const cat = record?.category;
+    if (!cat) return "카테고리";
 
-  // 1) 한글 카테고리를 영어 key로 변환 시도
-  const engKey = categoryKeyMap[cat] ?? cat.toLowerCase();
-
-  // 2) 영어 key로 라벨(아이콘+텍스트) 찾고, 없으면 원래 한글 그대로
-  return categoryLabelMap[engKey] ?? cat;
-}, [record?.category]);
+    const engKey = categoryKeyMap[cat] ?? cat.toLowerCase();
+    return categoryLabelMap[engKey] ?? cat;
+  }, [record?.category]);
 
   // 오늘의 인사이트 기록 조회
   useEffect(() => {
@@ -97,8 +94,7 @@ export default function ReportTodayInsightPage() {
 
   // 같은 질문에 다시 답해보기 목록 조회 (quizId 필요)
   useEffect(() => {
-    const quizId = record?.quizId; // number | null
-
+    const quizId = record?.quizId;
     if (quizId == null) return;
 
     (async () => {
@@ -120,17 +116,31 @@ export default function ReportTodayInsightPage() {
 
     const rawCategory = record.category ?? "";
     const categoryKey =
-      categoryKeyMap[rawCategory] ||
-      rawCategory.toLowerCase() ||
-      "mystery"; // fallback
+      categoryKeyMap[rawCategory] || rawCategory.toLowerCase() || "mystery";
 
     navigate(`/analyze/${categoryKey}/edit`, {
       state: {
-        summary: "", // 새로 쓰는 용도라 비워둠
+        summary: "",
         chatId: null,
         quizId: record.quizId,
         question: record.question,
         from: "reportTodayInsight",
+      },
+    });
+  };
+
+  // 다른 유저의 생각 더보기 → 해당 커뮤니티 게시글(댓글)로 이동
+  const handleGoComments = () => {
+    const quizId = record?.quizId;
+    if (!quizId) {
+      alert("퀴즈 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+
+    navigate(`/community/user/${quizId}`, {
+      state: {
+        from: "recordTodayInsight",
+        focus: "comments",
       },
     });
   };
@@ -159,12 +169,15 @@ export default function ReportTodayInsightPage() {
     return `${y}.${m}.${dd}`;
   };
 
-  // (임시) 다른 유저의 생각 TOP3 더미 데이터 – 나중에 API 붙이면 교체
-  const dummyTop3 = [
-    "귀에 착용하는 미니 스크린이 나올지도?",
-    "기술이 줄어드는 대신 ‘아날로그 복귀’가 유행할 것 같아요.",
-    "손짓으로 조작하는 홀로그램이 생길 것 같아요.",
-  ];
+  // topComments 정규화 (string 배열이 와도 안전하게)
+  const topComments = useMemo(() => {
+    const raw = record?.topComments ?? [];
+    return raw.map((c, idx) =>
+      typeof c === "string"
+        ? { commentId: idx, comment: c }
+        : (c as { commentId: number; comment: string })
+    );
+  }, [record?.topComments]);
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -233,7 +246,7 @@ export default function ReportTodayInsightPage() {
           )}
 
           {/* 퀴즐리봇 요약 */}
-          <section className=" bg-white mt-5 px-5 py-4">
+          <section className="bg-white mt-5 px-5 py-4">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[16px] font-medium text-neutral-650">
                 퀴즐리봇 요약
@@ -269,24 +282,28 @@ export default function ReportTodayInsightPage() {
               <button
                 type="button"
                 className="text-[14px] font-medium text-neutral-400"
-                onClick={() => {
-                  // TODO: 다른 유저 생각 전체 보기 화면으로 이동
-                }}
+                onClick={handleGoComments}
               >
                 더보기
               </button>
             </div>
 
-            <div className="space-y-2">
-              {dummyTop3.map((text, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-[10px] border-b border-neutral-100 bg-white px-5 py-4 text-[16px] text-neutral-650"
-                >
-                  {text}
-                </div>
-              ))}
-            </div>
+            {topComments.length === 0 ? (
+              <p className="mt-2 text-[14px] text-neutral-400">
+                아직 다른 유저의 생각이 없습니다. 첫 번째 댓글을 남겨보세요!
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {topComments.slice(0, 3).map((c) => (
+                  <div
+                    key={c.commentId}
+                    className="rounded-[10px] border-b border-neutral-100 bg-white px-5 py-4 text-[16px] text-neutral-650"
+                  >
+                    {c.comment}
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* 같은 질문에 다시 답해보기 리스트 */}
@@ -335,14 +352,14 @@ export default function ReportTodayInsightPage() {
           </div>
         </div>
 
-       {/* 🔹 삭제 확인 팝업 컴포넌트 사용 */}
+        {/* 삭제 확인 팝업 컴포넌트 사용 */}
         <DeleteInsightPop
-          open={showDeleteConfirm}              
-          title="기록을 삭제하시겠습니까?"          
-          message="삭제된 기록은 복구할 수 없습니다." 
-          confirmText="삭제"                      
-          cancelText="취소"                      
-          onConfirm={handleConfirmDelete}        
+          open={showDeleteConfirm}
+          title="기록을 삭제하시겠습니까?"
+          message="삭제된 기록은 복구할 수 없습니다."
+          confirmText="삭제"
+          cancelText="취소"
+          onConfirm={handleConfirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />
       </div>
