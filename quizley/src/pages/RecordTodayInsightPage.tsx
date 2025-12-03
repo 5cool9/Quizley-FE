@@ -14,7 +14,7 @@ import {
 import DeleteInsightPop from "../component/deleteInsightPop";
 
 type LocationState = {
-  date?: string; 
+  date?: string; // 기록 리스트/캘린더에서 넘겨주는 날짜 (YYYY-MM-DD)
 };
 
 const categoryLabelMap: Record<string, string> = {
@@ -50,7 +50,7 @@ export default function ReportTodayInsightPage() {
 
   const targetDate = record?.date ?? initialDate ?? "";
 
-  // 날짜 포맷팅
+  // 날짜 포맷팅: "2025-01-05" → "2025. 01. 05. (월)"
   const formattedDate = useMemo(() => {
     if (!targetDate) return "";
     const d = new Date(targetDate);
@@ -129,7 +129,7 @@ export default function ReportTodayInsightPage() {
     });
   };
 
-  // 다른 유저의 생각 더보기 → 해당 커뮤니티 게시글(댓글)로 이동
+  // 🔹 다른 유저의 생각 더보기 → 해당 커뮤니티 게시글(댓글)로 이동
   const handleGoComments = () => {
     const quizId = record?.quizId;
     if (!quizId) {
@@ -363,7 +363,6 @@ export default function ReportTodayInsightPage() {
           onCancel={() => setShowDeleteConfirm(false)}
         />
       </div>
-
     </div>
   );
 }
