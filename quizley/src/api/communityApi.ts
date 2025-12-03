@@ -396,8 +396,11 @@ export async function createQuizComment(params: {
   });
 
   // 백엔드 응답 wrapper 공식 대응
-  const body = res.data ?? res;
-
+const body = (res.data ?? res) as {
+  status: number;
+  message: string;
+  commentId: number;
+};
   if (body.status !== 201 || typeof body.commentId !== "number") {
     throw new Error(body.message ?? "댓글 작성 실패");
   }
