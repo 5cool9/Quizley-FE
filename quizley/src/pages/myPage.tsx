@@ -12,7 +12,7 @@ export default function MyPage() {
   const navigate = useNavigate();
 
   // 프로필 정보 (API 연동)
-  const [nickname, setNickname] = useState("김슈니");
+  const [nickname, setNickname] = useState("");
   const [currentLevel, setCurrentLevel] = useState(1);
   const [currentExp, setCurrentExp] = useState(0);
   const [nextExp, setNextExp] = useState(1);

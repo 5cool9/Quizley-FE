@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../component/header";
 import TabBar from "../component/tabbar";
 import TrashIcon from "../assets/icon/icon_trash.svg";
-import AlertPop from "../component/alertPop";
 import {
   getInsightRecord,
   deleteInsightRecord,
@@ -37,7 +36,6 @@ const categoryKeyMap: Record<string, string> = {
   심리: "psychology",
 };
 
-
 export default function ReportTodayInsightPage() {
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -49,9 +47,6 @@ export default function ReportTodayInsightPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  
 
   const targetDate = record?.date ?? initialDate ?? "";
 
@@ -119,8 +114,7 @@ export default function ReportTodayInsightPage() {
   // 같은 질문에 다시 답해보기 (+ 버튼) → editSummaryPage.tsx로 이동
   const handleGoSameQuestionEdit = () => {
     if (!record) {
-      setAlertMessage("인사이트 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.");
-      setAlertOpen(true);
+      alert("인사이트 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.");
       return;
     }
 
@@ -146,14 +140,12 @@ export default function ReportTodayInsightPage() {
     if (!targetDate) return;
     try {
       await deleteInsightRecord(targetDate);
-      setAlertMessage("기록이 삭제되었습니다.");
-      setAlertOpen(true);
+      alert("기록이 삭제되었습니다.");
       setShowDeleteConfirm(false);
       navigate(-1);
     } catch (err: any) {
       console.error("기록 삭제 실패:", err);
-      setAlertMessage(err?.message ?? "기록 삭제에 실패했습니다. 다시 시도해 주세요.");
-      setAlertOpen(true);
+      alert(err?.message ?? "기록 삭제에 실패했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -343,7 +335,7 @@ export default function ReportTodayInsightPage() {
           </div>
         </div>
 
-       {/* 삭제 확인 팝업 컴포넌트 사용 */}
+       {/* 🔹 삭제 확인 팝업 컴포넌트 사용 */}
         <DeleteInsightPop
           open={showDeleteConfirm}              
           title="기록을 삭제하시겠습니까?"          
@@ -354,12 +346,6 @@ export default function ReportTodayInsightPage() {
           onCancel={() => setShowDeleteConfirm(false)}
         />
       </div>
-
-      <AlertPop
-        open={alertOpen}
-        title={alertMessage}
-        onConfirm={() => setAlertOpen(false)}
-      />
     </div>
   );
 }
