@@ -10,7 +10,6 @@ import { getChatSummary } from "../api/chatSummary";
 import { completeChatComment } from "../api/chat";
 import { shareTodayInsightComment } from "../api/communityApi";
 import { useLevel } from "../context/LevelCotext";
-import AlertPop from "../component/alertPop";
 
 export default function TodayInsightPage() {
   const navigate = useNavigate();
@@ -49,9 +48,6 @@ export default function TodayInsightPage() {
   const [topComments, setTopComments] = useState<
     { commentId: number; comment: string }[]
   >([]);
-
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
 
   const isCompleted = category ? completedCategories[category] : false;
   const { updateLevel } = useLevel();
@@ -228,8 +224,7 @@ export default function TodayInsightPage() {
               }
             } catch (err) {
               console.error("답변 등록 실패:", err);
-              setAlertMessage("답변 등록에 실패했습니다. 다시 시도해주세요.");
-              setAlertOpen(true);
+              alert("답변 등록에 실패했습니다. 다시 시도해주세요.");
             }
           }}
         />
@@ -245,22 +240,15 @@ export default function TodayInsightPage() {
               commentAnonymous: true, // 공개 여부
               writerAnonymous: anonymous, // 팝업에서 체크한 값
               });
-              setAlertMessage("커뮤니티에 공유되었습니다!");
-              setAlertOpen(true);
+              alert("커뮤니티에 공유되었습니다!");
               setShowSharePopup(false);
             } catch (err) {
               console.error(err);
-              setAlertMessage("공유에 실패했습니다. 다시 시도해주세요.");
-              setAlertOpen(true);
+              alert("공유에 실패했습니다. 다시 시도해주세요.");
             }
             }}
             />
       </div>
-      <AlertPop
-        open={alertOpen}
-        title={alertMessage}
-        onConfirm={() => setAlertOpen(false)}
-      />
     </div>
   );
 }
