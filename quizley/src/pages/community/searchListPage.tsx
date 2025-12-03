@@ -11,6 +11,15 @@ import {
   type CategoryCode,
 } from "@/api/communityApi";
 
+const CATEGORY_ID_TO_CODE: Record<string, CategoryCode> = {
+  science: "과학",
+  literature: "문학",
+  history: "역사",
+  art: "예술",
+  mystery: "미스터리",
+  psychology: "심리",
+};
+
 const SearchListPage = () => {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -24,60 +33,65 @@ const SearchListPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   // 검색 API 호출
- useEffect(() => {
-  const load = async () => {
-    if (!searchQuery) {
-      setSearchResults([]);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await fetchCommunitySearch({
-        keyword: searchQuery,
-        sortBy: sortType,
-      });
-
-      let quizzes = data.quizzes;
-
-      //카테고리 필터링
-      if (categoryParam) {
-        quizzes = quizzes.filter((q) => q.category === categoryParam);
+  useEffect(() => {
+    const load = async () => {
+      if (!searchQuery) {
+        setSearchResults([]);
+        return;
       }
 
-      const posts: PostUser[] = quizzes.map((q) => ({
-        id: q.quizId,
-        kind: "user",
-        nickname: q.nickname ?? "익명",
-        title: q.content,
-        timeText: q.createdAt
-          ? q.createdAt
-          : q.publishedDate
-          ? q.publishedDate.replace(/-/g, ".")
-          : "",
-        likeCount: q.likeCount,
-        commentCount: q.commentCount,
-        liked: q.isLiked ?? false,
-      }));
+      setLoading(true);
+      setError(null);
 
-      setSearchResults(posts);
-    } catch (e: any) {
-      console.error("검색 실패:", e);
-      setError(e.message ?? "검색 중 오류가 발생했습니다.");
+      try {
+        const data = await fetchCommunitySearch({
+          keyword: searchQuery,
+          sortBy: sortType,
+        });
 
-      if (e.status === 401 || (e.message ?? "").includes("로그인")) {
-        alert("로그인이 필요합니다. 다시 로그인해주세요.");
-        navigate("/login");
+        let quizzes = data.quizzes;
+
+        //카테고리 필터링
+        if (categoryParam) {
+          const categoryKo = CATEGORY_ID_TO_CODE[categoryParam] ?? null;
+
+          if (categoryKo) {
+            quizzes = quizzes.filter((q) => q.category === categoryKo);
+          }
+        }
+
+
+        const posts: PostUser[] = quizzes.map((q) => ({
+          id: q.quizId,
+          kind: "user",
+          nickname: q.nickname ?? "익명",
+          title: q.content,
+          timeText: q.createdAt
+            ? q.createdAt
+            : q.publishedDate
+              ? q.publishedDate.replace(/-/g, ".")
+              : "",
+          likeCount: q.likeCount,
+          commentCount: q.commentCount,
+          liked: q.isLiked ?? false,
+        }));
+
+        setSearchResults(posts);
+      } catch (e: any) {
+        console.error("검색 실패:", e);
+        setError(e.message ?? "검색 중 오류가 발생했습니다.");
+
+        if (e.status === 401 || (e.message ?? "").includes("로그인")) {
+          alert("로그인이 필요합니다. 다시 로그인해주세요.");
+          navigate("/login");
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  load();
-}, [searchQuery, sortType, categoryParam, navigate]);
+    load();
+  }, [searchQuery, sortType, categoryParam, navigate]);
 
 
   // 검색어 입력 후 엔터 → URL q 파라미터 갱신
@@ -95,8 +109,8 @@ const SearchListPage = () => {
 
   //검색 결과 클릭 핸들러
   const handleClickSearchResult = (quizId: number) => {
-  navigate(`/community/user/${quizId}`);
-};
+    navigate(`/community/user/${quizId}`);
+  };
 
   // 정렬 적용된 결과
   const filteredAndSortedPosts = useMemo(() => {
@@ -183,8 +197,8 @@ const SearchListPage = () => {
 
   // 검색 아이템 클릭
   const handleClickSearchItem = (id: number | string) => {
-  navigate(`/community/user/${id}`);
-};
+    navigate(`/community/user/${id}`);
+  };
   return (
     <div className="relative bg-elevated w-full max-w-[393px] mx-auto min-h-screen">
       <div className="flex h-full scrollbar-hide flex-col overflow-y-scroll overflow-x-hidden min-h-[calc(100vh-86px)] pb-[100px]">
@@ -211,22 +225,20 @@ const SearchListPage = () => {
             <button
               onClick={() => setSortType("latest")}
               className={`h-[35px] w-[74px] rounded-full border border-solid typ-b6 transition text-neutral-650
-              ${
-                sortType === "latest"
+              ${sortType === "latest"
                   ? "bg-primary-100 border-primary-700"
                   : "bg-neutral-50 border-transparent "
-              }`}
+                }`}
             >
               최신순
             </button>
             <button
               onClick={() => setSortType("popular")}
               className={`h-[35px] w-[74px] rounded-full border border-solid typ-b6 transition text-neutral-650
-              ${
-                sortType === "popular"
+              ${sortType === "popular"
                   ? "bg-primary-100 border-primary-700"
                   : "bg-neutral-50 border-transparent"
-              }`}
+                }`}
             >
               인기순
             </button>

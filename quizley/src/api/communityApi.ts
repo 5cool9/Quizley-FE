@@ -383,24 +383,28 @@ export async function createQuizComment(params: {
   const { quizId, content, isAnonymous } = params;
 
   const res = await apiRequest<{
-    status: number;
-    message: string;
-    code?: string;
-    commentId?: number;
+    data?: {
+      status: number;
+      message: string;
+      commentId: number;
+    };
+    status?: number;
+    message?: string;
   }>(`/api/community/quiz/${quizId}/comment`, {
     method: "POST",
     body: JSON.stringify({ content, isAnonymous }),
   });
 
-  if (res.status !== 201 || typeof res.commentId !== "number") {
-    const err: any = new Error(res.message ?? "댓글 작성 실패");
-    err.status = res.status;
-    err.code = res.code;
-    throw err;
+  // 백엔드 응답 wrapper 공식 대응
+  const body = res.data ?? res;
+
+  if (body.status !== 201 || typeof body.commentId !== "number") {
+    throw new Error(body.message ?? "댓글 작성 실패");
   }
 
-  return res.commentId;
+  return body.commentId;
 }
+
 
 // 게시글 신고
 export async function reportQuiz(quizId: number): Promise<void> {
