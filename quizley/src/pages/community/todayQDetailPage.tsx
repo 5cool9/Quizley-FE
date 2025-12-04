@@ -86,6 +86,8 @@ const TodayQDetailPage = () => {
 
   const closeCommentModal = () => setCommentModal(null);
 
+  const LAST_DATE_KEY = "community_last_date";
+
   // ------------ 상세 조회 API 연동 ------------
 
   useEffect(() => {
@@ -107,11 +109,21 @@ const TodayQDetailPage = () => {
 
         // 오늘의 질문 카드용 데이터 매핑
         const q = data.quiz;
+        let displayDateText = q.createdAt;
+        try {
+          const saved = localStorage.getItem(LAST_DATE_KEY);
+          if (saved) {
+            displayDateText = saved.replace(/-/g, ".");
+          }
+        } catch (e) {
+          console.error("LAST_DATE_KEY 읽기 실패:", e);
+        }
+
         const daily: DetailDailyPost = {
           id: q.quizId,
           kind: "daily",
           title: q.content,
-          dateText: q.createdAt, // "2025.11.18"
+          dateText: displayDateText,
           commentCount: q.commentCount,
         };
         setDetailPost(daily);
@@ -296,18 +308,16 @@ const TodayQDetailPage = () => {
               disabled={commentCount === 0}
             >
               <span
-                className={`w-[8px] h-[8px] rounded-full ${
-                  sortType === "popular"
+                className={`w-[8px] h-[8px] rounded-full ${sortType === "popular"
                     ? "bg-primary-700"
                     : "bg-neutral-300"
-                }`}
+                  }`}
               />
               <span
-                className={`typ-b6 ${
-                  sortType === "popular"
+                className={`typ-b6 ${sortType === "popular"
                     ? "text-neutral-650"
                     : "text-neutral-400"
-                }`}
+                  }`}
               >
                 인기순
               </span>
@@ -319,18 +329,16 @@ const TodayQDetailPage = () => {
               disabled={commentCount === 0}
             >
               <span
-                className={`w-[8px] h-[8px] rounded-full ${
-                  sortType === "latest"
+                className={`w-[8px] h-[8px] rounded-full ${sortType === "latest"
                     ? "bg-primary-700"
                     : "bg-neutral-300"
-                }`}
+                  }`}
               />
               <span
-                className={`typ-b6 ${
-                  sortType === "latest"
+                className={`typ-b6 ${sortType === "latest"
                     ? "text-neutral-650"
                     : "text-neutral-400"
-                }`}
+                  }`}
               >
                 최신순
               </span>

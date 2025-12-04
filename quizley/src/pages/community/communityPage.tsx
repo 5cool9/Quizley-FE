@@ -165,19 +165,29 @@ const CommunityPage = () => {
   const { dragBind: catDrag } = useDragScroll();
   const { ref: catDragRef, ...restCatDragBind } = catDrag;
 
- useEffect(() => {
-  try {
-    const saved = localStorage.getItem(CATEGORY_STORAGE_KEY);
-    if (saved) {
-      setActiveCategoryId(saved);
-    } else {
-      setActiveCategoryId("mystery"); // 기본 카테고리
+
+  // selectedDate가 바뀔 때마다 localStorage에 저장
+  useEffect(() => {
+    try {
+      localStorage.setItem(LAST_DATE_KEY, selectedDate);
+    } catch (e) {
+      console.error("LAST_DATE_KEY 저장 실패:", e);
     }
-  } catch (e) {
-    console.error("카테고리 복원 실패:", e);
-    setActiveCategoryId("science");
-  }
-}, []);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CATEGORY_STORAGE_KEY);
+      if (saved) {
+        setActiveCategoryId(saved);
+      } else {
+        setActiveCategoryId("mystery"); // 기본 카테고리
+      }
+    } catch (e) {
+      console.error("카테고리 복원 실패:", e);
+      setActiveCategoryId("science");
+    }
+  }, []);
 
 
   // ---------------- 최초 마운트 시 말풍선 localStorage 확인 ----------------
@@ -363,7 +373,6 @@ const CommunityPage = () => {
       .padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
 
     setSelectedDate(apiDate);
-    localStorage.setItem(LAST_DATE_KEY, apiDate);
 
     setIsCalendarOpen(false);
   };
