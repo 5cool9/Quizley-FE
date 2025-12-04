@@ -55,7 +55,6 @@ Quizley
 ##  Tech Stack 🛠️
 - React · TypeScript · Vite
 - Tailwind CSS
-- Axios
   
 <br>
 
@@ -125,13 +124,8 @@ feat: 마이페이지 기본 UI 구현
   - Quizley-FE의 정적 파일을 호스팅
   - GitHub 연동을 통한 자동 빌드 & 배포
 
-- **Client (브라우저)**
-  - React로 구성된 UI 제공
-  - Axios를 통해 Backend API 호출
-
 - **Backend API**
   - 인증, 커뮤니티, 퀴즈 등 모든 데이터 제공
-  - FE는 Axios 인터셉터 기반으로 백엔드와 통신
 
 #### 2) 배포 방식
 
@@ -147,9 +141,8 @@ feat: 마이페이지 기본 UI 구현
 
 1. 작업 브랜치 생성 → 기능 구현  
 2. PR 생성 → `dev` 브랜치로 merge  
-3. 배포 시점에 `dev` → `main` merge  
-4. main 업데이트 감지 → Vercel 자동 빌드 & 배포  
-5. 배포 URL에서 즉시 새로운 버전 확인 가능
+3. dev 업데이트 감지 → Vercel 자동 빌드 & 배포  
+4. 배포 URL에서 즉시 새로운 버전 확인 가능
 
 <br>
 
